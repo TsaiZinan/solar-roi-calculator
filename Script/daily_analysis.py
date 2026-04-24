@@ -63,6 +63,7 @@ def read_csv(path):
 def simulate_with_storage(data):
     results = []
     dt = 5.0 / 60.0
+    STORAGE_EFFICIENCY = 0.95  # 充放电单向效率
     
     for row in data:
         period = get_tariff_period(row["hour"], row["minute"])

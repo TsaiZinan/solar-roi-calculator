@@ -25,6 +25,7 @@ def calculate_profit(csv_path, model_name=""):
     
     BATTERY_CAPACITY = 257.0
     MAX_POWER = 120.0
+    STORAGE_EFFICIENCY = 0.95  # 充放电单向效率（假设双向综合效率约90%）
     
     current_soc = df['SOC(%)'].iloc[0] / 100.0
     current_energy = current_soc * BATTERY_CAPACITY
@@ -56,9 +57,9 @@ def calculate_profit(csv_path, model_name=""):
         # 有储能系统的情形
         if is_valley:
             space = BATTERY_CAPACITY - current_energy
-            max_charge = min(MAX_POWER, space / dt)
+            max_charge = min(MAX_POWER, space / (dt * STORAGE_EFFICIENCY))
             battery_charge = max_charge
-            current_energy += battery_charge * dt
+            current_energy += battery_charge * dt * STORAGE_EFFICIENCY
             
             if net_load > 0:
                 buy_from_grid = net_load + battery_charge
@@ -69,11 +70,11 @@ def calculate_profit(csv_path, model_name=""):
         else:
             if net_load > 0:
                 available_energy = current_energy
-                max_discharge = min(MAX_POWER, available_energy / dt)
+                max_discharge = min(MAX_POWER, available_energy / (dt / STORAGE_EFFICIENCY))
                 max_discharge = min(max_discharge, net_load)
                 
                 battery_discharge = max_discharge
-                current_energy -= battery_discharge * dt
+                current_energy -= battery_discharge * dt / STORAGE_EFFICIENCY
                 
                 deficit = net_load - battery_discharge
                 if deficit > 0:
@@ -81,11 +82,11 @@ def calculate_profit(csv_path, model_name=""):
             else:
                 excess_pv = -net_load
                 space = BATTERY_CAPACITY - current_energy
-                max_charge = min(MAX_POWER, space / dt)
+                max_charge = min(MAX_POWER, space / (dt * STORAGE_EFFICIENCY))
                 max_charge = min(max_charge, excess_pv)
                 
                 battery_charge = max_charge
-                current_energy += battery_charge * dt
+                current_energy += battery_charge * dt * STORAGE_EFFICIENCY
                 
                 remaining_pv = excess_pv - battery_charge
                 if remaining_pv > 0:
