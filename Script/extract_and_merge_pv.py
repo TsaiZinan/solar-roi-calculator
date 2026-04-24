@@ -96,7 +96,6 @@ if __name__ == "__main__":
         if len(sys.argv) >= 4:
             target_kwh = float(sys.argv[3])
     else:
-        IMAGE_PATH = '/Users/cai/SynologyDrive/Project/TEMP/微信图片_20260421150856_45_465.png'
-        CSV_PATH = '/Users/cai/SynologyDrive/Project/TEMP/日报表_广东汕头市雅威机电实业0.12MW#0.257MWh工商储项目_20260421152008.csv'
+        raise SystemExit("用法: python3 extract_and_merge_pv.py <图片路径> <CSV路径> [目标发电量kWh]")
     
     extract_and_merge(IMAGE_PATH, CSV_PATH, target_generation_kwh=target_kwh)

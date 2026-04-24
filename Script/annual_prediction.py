@@ -1,29 +1,44 @@
 import pandas as pd
-import numpy as np
 import glob
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from pricing import get_ev_sell_price, get_grid_buy_price
+from config import (
+    ANNUAL_SAMPLE_DATE_KEYWORDS,
+    ANNUAL_PREDICTION_ESS_SETUPS,
+    ANNUAL_WEATHER_DAY_COUNTS,
+    DATA_DIR,
+    PRIMARY_ESS,
+    REPORT_DIR,
+    ROI_INVESTMENT_BASE_WAN,
+    ROI_INVESTMENT_ESS_WAN,
+    ROI_REPORT_NAME,
+    get_factory_load as get_factory_load_kw,
+)
+from pricing import get_ev_sell_price, get_grid_buy_price, get_grid_period_map
 
-def calc_for_file(csv_path, bat_cap=257.0, max_power=120.0):
+def calc_for_file(
+    csv_path,
+    bat_cap=PRIMARY_ESS["capacity_kwh"],
+    max_power=PRIMARY_ESS["max_power_kw"],
+    storage_efficiency=PRIMARY_ESS["efficiency"],
+):
     df = pd.read_csv(csv_path)
     df['时间'] = pd.to_datetime(df['时间'])
+    date_str = df['时间'].dt.strftime('%Y%m%d').iloc[0]
+    period_map = get_grid_period_map(date_str)
     df['真实总负载(kW)'] = df['光伏发电功率(kW)'] - df['负载功率(kW)']
     
-    def get_factory_load(t):
-        hour = t.hour
-        if (7 <= hour < 12) or (13 <= hour < 18):
-            return 50.0
-        return 0.0
+    def factory_load_for_timestamp(t):
+        return get_factory_load_kw(t.hour)
         
-    df['工厂用电(kW)'] = df.apply(lambda row: min(max(row['真实总负载(kW)'], 0), get_factory_load(row['时间'])), axis=1)
+    df['工厂用电(kW)'] = df.apply(lambda row: min(max(row['真实总负载(kW)'], 0), factory_load_for_timestamp(row['时间'])), axis=1)
     df['充电桩用电(kW)'] = df['真实总负载(kW)'] - df['工厂用电(kW)']
     df['充电桩用电(kW)'] = df['充电桩用电(kW)'].clip(lower=0)
     
     BATTERY_CAPACITY = bat_cap
     MAX_POWER = max_power
-    STORAGE_EFFICIENCY = 0.95  # 充放电单向效率（假设双向综合效率约90%）
+    STORAGE_EFFICIENCY = storage_efficiency
     
     current_soc = df['SOC(%)'].iloc[0] / 100.0
     current_energy = current_soc * BATTERY_CAPACITY
@@ -31,7 +46,7 @@ def calc_for_file(csv_path, bat_cap=257.0, max_power=120.0):
     dt = 5 / 60.0
     results = []
     
-    for i, row in df.iterrows():
+    for _, row in df.iterrows():
         t = row['时间']
         hour = t.hour
         pv = row['光伏发电功率(kW)']
@@ -42,8 +57,7 @@ def calc_for_file(csv_path, bat_cap=257.0, max_power=120.0):
         battery_charge = 0.0
         battery_discharge = 0.0
         
-        is_valley = (0 <= hour < 8)
-        is_peak = (10 <= hour < 12) or (14 <= hour < 19)
+        is_valley = period_map.get(hour, '平') == '谷'
         
         grid_buy_price = get_grid_buy_price(t.strftime('%Y-%m-%d'), hour)
             
@@ -104,10 +118,10 @@ def calc_for_file(csv_path, bat_cap=257.0, max_power=120.0):
     return res_df['profit_01'].sum(), res_df['profit_02'].sum()
 
 def run_annual_prediction():
-    csv_files = glob.glob("/Users/cai/SynologyDrive/Project/#ProjectWork-000000-光伏收益计算/数据/**/*.csv", recursive=True)
-    sunny_files = [f for f in csv_files if '0415' in f or '0416' in f or '0420' in f or '0422' in f]
-    cloudy_files = [f for f in csv_files if '0417' in f or '0418' in f]
-    rainy_files = [f for f in csv_files if '0419' in f or '0421' in f]
+    csv_files = glob.glob(os.path.join(DATA_DIR, "**/*.csv"), recursive=True)
+    sunny_files = [f for f in csv_files if any(keyword in f for keyword in ANNUAL_SAMPLE_DATE_KEYWORDS["sunny"])]
+    cloudy_files = [f for f in csv_files if any(keyword in f for keyword in ANNUAL_SAMPLE_DATE_KEYWORDS["cloudy"])]
+    rainy_files = [f for f in csv_files if any(keyword in f for keyword in ANNUAL_SAMPLE_DATE_KEYWORDS["rainy"])]
 
     def get_annual(bat_cap, max_power):
         def avg_group(files):
@@ -122,16 +136,25 @@ def run_annual_prediction():
         c_res = avg_group(cloudy_files)
         r_res = avg_group(rainy_files)
         
-        ann_01 = 130 * s_res[0] + 97 * c_res[0] + 138 * r_res[0]
-        ann_02 = 130 * s_res[1] + 97 * c_res[1] + 138 * r_res[1]
+        ann_01 = (
+            ANNUAL_WEATHER_DAY_COUNTS["sunny"] * s_res[0]
+            + ANNUAL_WEATHER_DAY_COUNTS["cloudy"] * c_res[0]
+            + ANNUAL_WEATHER_DAY_COUNTS["rainy"] * r_res[0]
+        )
+        ann_02 = (
+            ANNUAL_WEATHER_DAY_COUNTS["sunny"] * s_res[1]
+            + ANNUAL_WEATHER_DAY_COUNTS["cloudy"] * c_res[1]
+            + ANNUAL_WEATHER_DAY_COUNTS["rainy"] * r_res[1]
+        )
         return ann_01, ann_02
 
-    # 0 ESS
-    ann_0_01, ann_0_02 = get_annual(0.0, 0.0)
-    # 1 ESS
-    ann_1_01, ann_1_02 = get_annual(257.0, 120.0)
-    # 2 ESS
-    ann_2_01, ann_2_02 = get_annual(507.0, 240.0)
+    annual_results = {
+        name: get_annual(capacity, power)
+        for name, capacity, power in ANNUAL_PREDICTION_ESS_SETUPS
+    }
+    ann_0_01, ann_0_02 = annual_results["base"]
+    ann_1_01, ann_1_02 = annual_results["ess_1"]
+    ann_2_01, ann_2_02 = annual_results["ess_2"]
     
     def to_wan(val): return val / 10000.0
 
@@ -144,8 +167,8 @@ def run_annual_prediction():
     ess2_01 = to_wan(ann_2_01 - ann_1_01)
     ess2_02 = to_wan(ann_2_02 - ann_1_02)
 
-    inv_base = 175.0
-    inv_ess = 22.0
+    inv_base = ROI_INVESTMENT_BASE_WAN
+    inv_ess = ROI_INVESTMENT_ESS_WAN
     
     def roi(profit, inv): return (profit / inv) * 100
     def payback(profit, inv): return inv / profit if profit > 0 else 999
@@ -218,7 +241,7 @@ def run_annual_prediction():
 目前的系统配置（即 **1套光伏 + 1套充电站 + 1个储能柜**）已经是利润最大化、回本最快、资金效率最高的**黄金最优解**，暂不建议增配第二个储能柜。
 """
     
-    report_path = "/Users/cai/SynologyDrive/Project/#ProjectWork-000000-光伏收益计算/报告/项目投资回报率(ROI)分析报告_20260420.md"
+    report_path = os.path.join(REPORT_DIR, ROI_REPORT_NAME)
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(md_content)
     print(f"✅ 已基于全年预测数据更新 ROI 分析报告: {report_path}")
