@@ -246,36 +246,6 @@ def generate_report(data, report_path, model_name, date_str):
     no_storage_net_profit_02 = no_storage_charging_revenue + no_storage_pv_surplus * 0.20 - no_storage_grid_cost
     no_storage_net_profit_035 = no_storage_charging_revenue + no_storage_pv_surplus * 0.35 - no_storage_grid_cost
     
-    # 问题在于 simulate_no_storage 里面工厂用电和充电桩用电逻辑！
-    # 原来代码里： charging_load_kw = max(0, total_load - factory)
-    # 这其实是错的，充电桩的负荷不应该受到 factory 影响？
-    # 实际上，有储能和无储能计算时，计算 grid_cost 的基础用电量是有差异的。
-    # 让我们仔细检查：在 simulate_with_storage 中，grid_import_kw 直接来自于真实数据的 row["grid"]，而储能也在其中！
-    # 也就是说，真实数据的 row["grid"] 已经包含了充储能的电。
-    # 如果我们要模拟“无储能”时的电网买电量，应该剔除储能充电的用电量！
-    # 但在 simulate_no_storage 中，grid_needed_kw = max(0, total_need - pv_power)
-    # total_need = factory + charging_load_kw = factory + max(0, max(0, -row["load"]) - factory) = max(factory, -row["load"])
-    # 这样计算出来的 total_need 导致无储能状态下用电需求极大，从而产生了庞大的网电购买成本。
-    # 但实际上，如果真实储能在低谷时段充电，它增加了 grid_power。如果我们把储能去掉，电费应该减少。
-    # 我们重新对比一下：
-    # simulate_with_storage:
-    # total_load = max(0, -row["load"])
-    # grid_cost = grid_import_kw * dt * grid_price  (这里的 grid_import_kw = max(0, -row["grid"]))
-    # 
-    # simulate_no_storage:
-    # total_load = max(0, -row["load"])
-    # total_need = factory + charging_load_kw = max(factory, total_load)
-    # grid_needed_kw = max(0, total_need - pv_power)
-    # grid_cost = grid_needed_kw * dt * grid_price
-    # 
-    # 为什么有储能反而亏钱？
-    # 可能是因为，模拟无储能时，我们用计算出的 total_need 来算 grid_needed_kw。
-    # 而实际有储能时，我们直接用 row["grid"] 算 grid_cost。
-    # 如果 row["grid"] 非常大，比如低谷充电，这部分的 grid_cost 在有储能里被扣除了，但在无储能里没有！
-    # 这没问题。但储能放电时，row["grid"] 变小了，有储能的 grid_cost 减少。
-    # 为什么结果反而差？
-    # 让我们修复 simulate_no_storage 中的逻辑，确保与 simulate_with_storage 完全对齐！
-    
     storage_gain_01 = total_net_profit_01 - no_storage_net_profit
     storage_gain_02 = total_net_profit_02 - no_storage_net_profit_02
     storage_gain_035 = total_net_profit_035 - no_storage_net_profit_035
