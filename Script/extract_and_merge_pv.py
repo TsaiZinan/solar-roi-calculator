@@ -1,7 +1,138 @@
 import cv2
 import numpy as np
 import pandas as pd
+import os
+import shutil
+import subprocess
+import tempfile
 from scipy.interpolate import interp1d
+
+DEFAULT_X_START = 321.0
+DEFAULT_PX_PER_HOUR = 92.0227
+DEFAULT_Y_ZERO = 943.0
+DEFAULT_PX_PER_100KW = 138.5
+OCR_UPSCALE = 2
+OCR_MIN_CONFIDENCE = 50.0
+
+
+def _parse_tesseract_tsv(tsv_text):
+    lines = tsv_text.splitlines()
+    if not lines:
+        return []
+
+    entries = []
+    for line in lines[1:]:
+        parts = line.split('\t')
+        if len(parts) < 12:
+            continue
+
+        text = parts[11].strip()
+        if not text:
+            continue
+
+        try:
+            entries.append({
+                'left': int(parts[6]),
+                'top': int(parts[7]),
+                'width': int(parts[8]),
+                'height': int(parts[9]),
+                'conf': float(parts[10]),
+                'text': text,
+            })
+        except ValueError:
+            continue
+
+    return entries
+
+
+def _detect_y_axis_scale_with_ocr(img):
+    tesseract_bin = shutil.which("tesseract")
+    if not tesseract_bin:
+        return None
+
+    height, width = img.shape[:2]
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    enlarged = cv2.resize(
+        gray, None, fx=OCR_UPSCALE, fy=OCR_UPSCALE, interpolation=cv2.INTER_CUBIC
+    )
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+        temp_path = tmp_file.name
+
+    try:
+        cv2.imwrite(temp_path, enlarged)
+        result = subprocess.run(
+            [tesseract_bin, temp_path, "stdout", "--psm", "11", "tsv"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        numeric_entries = []
+        for entry in _parse_tesseract_tsv(result.stdout):
+            if entry['conf'] < OCR_MIN_CONFIDENCE:
+                continue
+
+            text = entry['text'].replace("O", "0").replace("o", "0")
+            if not text.isdigit():
+                continue
+
+            value = int(text)
+            if value <= 0 or value > 1000:
+                continue
+
+            center_x = (entry['left'] + entry['width'] / 2) / OCR_UPSCALE
+            center_y = (entry['top'] + entry['height'] / 2) / OCR_UPSCALE
+
+            # 纵轴刻度通常位于左侧区域，且不会落在图例底部。
+            if center_x > width * 0.18:
+                continue
+            if center_y < height * 0.05 or center_y > height * 0.8:
+                continue
+
+            numeric_entries.append({
+                'value': value,
+                'x': center_x,
+                'y': center_y,
+                'conf': entry['conf'],
+            })
+
+        if len(numeric_entries) < 2:
+            return None
+
+        best_by_value = {}
+        for entry in numeric_entries:
+            current = best_by_value.get(entry['value'])
+            if current is None or entry['conf'] > current['conf']:
+                best_by_value[entry['value']] = entry
+
+        points = list(best_by_value.values())
+        if len(points) < 2:
+            return None
+
+        values = np.array([p['value'] for p in points], dtype=float)
+        y_centers = np.array([p['y'] for p in points], dtype=float)
+
+        slope, intercept = np.polyfit(values, y_centers, 1)
+        if slope >= 0:
+            return None
+
+        y_zero = float(intercept)
+        px_per_100kw = float(abs(slope) * 100.0)
+        if px_per_100kw <= 0:
+            return None
+
+        recognized_values = sorted(int(v) for v in values)
+        return {
+            'y_zero': y_zero,
+            'px_per_100kw': px_per_100kw,
+            'recognized_values': recognized_values,
+        }
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generation_kwh=None):
     if output_csv_path is None:
@@ -35,13 +166,27 @@ def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generat
     df_pixels = df_pixels[df_pixels['y'] < 1000].copy()
 
     # 2. 坐标轴映射
-    # 根据之前的分析：
-    # X轴: 00:00 对应 x=321, 22:00 对应 x=2345.5 -> 比例 92.0227 px/小时
-    # Y轴: 0 kW 对应 y=943, 100 kW 对应 138.5 px
-    x_start = 321.0
-    px_per_hour = 92.0227
-    y_zero = 943.0
-    px_per_100kw = 138.5
+    # X 轴仍沿用当前样图标定参数，Y 轴优先通过 OCR 自动识别刻度。
+    x_start = DEFAULT_X_START
+    px_per_hour = DEFAULT_PX_PER_HOUR
+    y_zero = DEFAULT_Y_ZERO
+    px_per_100kw = DEFAULT_PX_PER_100KW
+
+    ocr_scale = _detect_y_axis_scale_with_ocr(img)
+    if ocr_scale:
+        y_zero = ocr_scale['y_zero']
+        px_per_100kw = ocr_scale['px_per_100kw']
+        print(
+            "Detected Y-axis scale via OCR:",
+            f"labels={ocr_scale['recognized_values']},",
+            f"y_zero={y_zero:.2f},",
+            f"px_per_100kw={px_per_100kw:.2f}",
+        )
+    else:
+        print(
+            "Y-axis OCR unavailable or failed, fallback to defaults:",
+            f"y_zero={y_zero:.2f}, px_per_100kw={px_per_100kw:.2f}",
+        )
 
     # 转换为实际的物理单位
     df_pixels['hours'] = (df_pixels['x'] - x_start) / px_per_hour
