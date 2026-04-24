@@ -15,8 +15,8 @@ def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generat
     # 1. 提取曲线的像素坐标
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     # 定义绿色的HSV范围 (根据原图颜色调整)
-    lower_green = np.array([40, 50, 50])
-    upper_green = np.array([90, 255, 255])
+    lower_green = (40, 50, 50)
+    upper_green = (90, 255, 255)
     
     # 提取绿色部分
     mask = cv2.inRange(hsv, lower_green, upper_green)
