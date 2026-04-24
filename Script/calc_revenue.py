@@ -52,7 +52,7 @@ def process_data(csv_path):
             
         pv = 0; ess_c = 0; ess_d = 0; fac = 0; ev = 0
         buy_w = 0; sell_w = 0; buy_no = 0; sell_no = 0
-        pv_to_load = 0; pv_to_ess = 0; pv_to_grid = 0
+        pv_to_load = 0; pv_to_ess = 0; pv_to_grid = 0; pv_to_factory = 0
         grid_to_load = 0; grid_to_ess = 0; factory_savings_total = 0
         
         for _, row in hour_df.iterrows():
@@ -79,6 +79,7 @@ def process_data(csv_path):
             # 流向计算
             # 1. 光伏流向: 优先满足负载，剩余充储能，再剩余上网
             r_pv_to_load = min(r_pv, r_total_load)
+            r_pv_to_factory = min(r_pv, r_total_load, r_fac)
             r_pv_to_ess = min(max(0, r_pv - r_pv_to_load), r_ess_c)
             r_pv_to_grid = max(0, r_pv - r_pv_to_load - r_pv_to_ess)
             
@@ -95,9 +96,10 @@ def process_data(csv_path):
             sell_w += r_sell_w * dt
             buy_no += max(0, grid_no) * dt
             sell_no += max(0, -grid_no) * dt
-            factory_savings = r_fac * dt * get_grid_buy_price(date_str, h)
+            factory_savings = r_pv_to_factory * dt * get_grid_buy_price(date_str, h)
             
             pv_to_load += r_pv_to_load * dt
+            pv_to_factory += r_pv_to_factory * dt
             pv_to_ess += r_pv_to_ess * dt
             pv_to_grid += r_pv_to_grid * dt
             grid_to_load += r_grid_to_load * dt
@@ -109,7 +111,7 @@ def process_data(csv_path):
             'hour': h, 'period': period_map.get(h, '平'),
             'pv': pv, 'ess_c': ess_c, 'ess_d': ess_d, 'fac': fac, 'ev': ev,
             'buy_w': buy_w, 'sell_w': sell_w, 'buy_no': buy_no, 'sell_no': sell_no,
-            'pv_to_load': pv_to_load, 'pv_to_ess': pv_to_ess, 'pv_to_grid': pv_to_grid,
+            'pv_to_load': pv_to_load, 'pv_to_factory': pv_to_factory, 'pv_to_ess': pv_to_ess, 'pv_to_grid': pv_to_grid,
             'grid_to_load': grid_to_load, 'grid_to_ess': grid_to_ess,
             'factory_savings': factory_savings_total,
         })
@@ -132,7 +134,7 @@ def calc_profit_for_price(date_str, stats, pv_price):
         sell_ev_p = get_ev_sell_price(date_str, h)
         
         rev_ev = st['ev'] * sell_ev_p
-        rev_fac = st['fac'] * buy_p
+        rev_fac = st['factory_savings']
         
         cost_w = st['buy_w'] * buy_p
         cash_profit_w = st['sell_w'] * pv_price + rev_ev - cost_w
@@ -163,7 +165,7 @@ def generate_report(csv_path):
         sell_ev_p = get_ev_sell_price(date_str, h)
         
         rev_ev = st['ev'] * sell_ev_p
-        rev_fac = st['fac'] * buy_p
+        rev_fac = st['factory_savings']
         cost_w = st['buy_w'] * buy_p
         st['cash_profit_w_01'] = st['sell_w'] * 0.1 + rev_ev - cost_w
         st['profit_w_01'] = st['cash_profit_w_01'] + rev_fac
@@ -173,7 +175,7 @@ def generate_report(csv_path):
     periods = {}
     for p in period_order:
         periods[p] = {k: 0 for k in ['pv', 'ess_c', 'ess_d', 'fac', 'ev', 'buy_w', 'sell_w', 'profit_w_01',
-                                     'factory_savings', 'pv_to_load', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
+                                     'factory_savings', 'pv_to_load', 'pv_to_factory', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
         
     for st in stats:
         if 'pv_to_load' not in st:
@@ -181,7 +183,7 @@ def generate_report(csv_path):
         p = st['period']
         if p not in periods:
             periods[p] = {k: 0 for k in ['pv', 'ess_c', 'ess_d', 'fac', 'ev', 'buy_w', 'sell_w', 'profit_w_01',
-                                         'factory_savings', 'pv_to_load', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
+                                         'factory_savings', 'pv_to_load', 'pv_to_factory', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
         for k in periods[p].keys():
             periods[p][k] += st.get(k, 0)
             
@@ -238,9 +240,9 @@ def generate_report(csv_path):
         result = calc_profit_for_price(date_str, stats, price)
         
         lines.append(f"\n### 【场景 {name}：光伏上网电价 {price} 元/度】")
-        lines.append(f"1. **光伏纯卖电收益** (假设光伏全额卖给电网): 今日理论可产生 **{result['pv_revenue']:.2f}** 元。")
+        lines.append(f"1. **光伏全额上网理论值** (仅作对比，非当日实际可实现收益): 若今日光伏电量不自用且全部按上网电价结算，理论可得 **{result['pv_revenue']:.2f}** 元。")
         lines.append(f"2. **现金类收益(无储能)**: 充电桩收入叠加光伏上网收入并扣除购电成本，今日合计 **{result['without_storage_cash']:.2f}** 元。")
-        lines.append(f"3. **工厂省电收益**: 光伏直发直用替代工厂购电，今日合计 **{result['factory_savings']:.2f}** 元。")
+        lines.append(f"3. **工厂省电收益**: 实际由光伏直供工厂负载而替代的购电成本，今日合计 **{result['factory_savings']:.2f}** 元。")
         lines.append(f"4. **经营总收益(无储能)**: 现金类收益加工厂省电收益后，今日合计 **{result['without_storage_total']:.2f}** 元。")
         lines.append(f"5. **{PRIMARY_ESS['label']}实际额外增益**: 本套正在运行的储能系统通过峰谷套利及减少弃光，今日实际为您**额外创收** **{result['extra_profit']:.2f}** 元。")
         lines.append(f"6. **含储能经营总收益**: 在当前储能运行结果下，今日实际总收益为 **{result['with_storage_total']:.2f}** 元。")
