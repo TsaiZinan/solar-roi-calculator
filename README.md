@@ -43,6 +43,9 @@
 - `Script/regenerate_reports.py`
   - 批量扫描 `数据/20*/` 下的日度 CSV
   - 逐日重生成日报和总表
+- `Script/reprocess_history_with_ocr.py`
+  - 批量重识别历史光伏截图并回写 CSV
+  - 再按新光伏数据重生成全部日报和总表
 - `Script/annual_prediction.py`
   - 基于样本天和配置参数推算全年收益
   - 输出 ROI 报告
@@ -137,6 +140,11 @@
 - 修复口径：现已改为仅统计“实际由光伏直供工厂负载”的那部分电量，再乘以对应时段电网购电价格。
 - 报告表述同步调整：`光伏纯卖电收益` 已改名为 `光伏全额上网理论值`，并明确标注“仅作对比，非当日实际可实现收益”。
 - 数据修复动作：已使用 `python3 Script/regenerate_reports.py` 对全部历史日报和 `报告/总收益分析报表.md` 执行全量重生成。
+- 修复时间：`2026-04-25`
+- 问题现象：旧版 `extract_and_merge_pv.py` 依赖写死的纵轴像素比例，在截图缩放、分辨率或裁切略有变化时，会显著高估或低估光伏发电功率。
+- 实际影响：历史光伏发电曲线提取结果整体偏差较大，进而联动影响工厂省电收益、经营总收益和总收益分析报表。
+- 修复口径：现已优先通过 OCR 读取纵轴刻度，自动拟合 `y_zero` 与 `px_per_100kw`；若 OCR 失败，再回退到默认参数。
+- 数据修复动作：已使用 `python3 Script/reprocess_history_with_ocr.py` 重新识别全部历史图片，并重生成全部日报与总表。
 
 ### 储能效率
 
@@ -176,13 +184,19 @@ python3 Script/regenerate_reports.py
 python3 Script/init_summary.py
 ```
 
-### 4. 生成年化收益与 ROI 报告
+### 4. 批量重识别历史图片并重算全部报告
+
+```bash
+python3 Script/reprocess_history_with_ocr.py
+```
+
+### 5. 生成年化收益与 ROI 报告
 
 ```bash
 python3 Script/annual_prediction.py
 ```
 
-### 5. 从图片提取光伏曲线并回写 CSV
+### 6. 从图片提取光伏曲线并回写 CSV
 
 ```bash
 python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> [目标发电量kWh]
@@ -300,6 +314,12 @@ brew install tesseract
 - 修复 `工厂省电收益` 按整段工厂负载全额计入的问题，改为仅统计光伏对工厂负载的实际直供部分
 - 将 `光伏纯卖电收益` 的文案调整为 `光伏全额上网理论值`，避免与当日实际收益混淆
 - 对全部历史日报和总收益总表执行全量重生成，确保历史结果与新口径一致
+
+### V6 光伏 OCR 重标定版
+
+- 修复光伏曲线提取依赖写死纵轴像素比例的问题，改为优先通过 OCR 自动识别纵轴刻度并拟合功率映射
+- 增加 `Script/reprocess_history_with_ocr.py`，支持批量重识别历史截图并一键重生成全部日报和总表
+- 使用新 OCR 提取逻辑对 `20260415` 至 `20260424` 的历史图片执行全量重算，统一修正光伏电量与收益结果
 
 如需查看完整提交历史，请在项目根目录执行：
 
