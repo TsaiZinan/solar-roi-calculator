@@ -168,10 +168,7 @@ def calculate_profit(csv_path, model_name=""):
     ess_extra_profit_02 = total_profit_02 - baseline_profit_02
     ess_extra_profit_035 = total_profit_035 - baseline_profit_035
     
-    report_content = f"# 每日收益分析报告"
-    if model_name:
-        report_content += f" ({model_name})"
-    report_content += f" - {date_str}\n\n"
+    report_content = f"# 每日收益分析报告 - {date_str}\n\n"
     
     report_content += "## 1. 基础报表 (光伏上网电价 0.1元/度)\n"
     report_content += "### 1.1 分时段汇总 (峰/平/谷)\n"
@@ -206,10 +203,7 @@ def calculate_profit(csv_path, model_name=""):
     # 写入文件
     report_dir = "/Users/cai/SynologyDrive/Project/#ProjectWork-000000-光伏收益计算/报告"
     os.makedirs(report_dir, exist_ok=True)
-    if model_name:
-        report_filename = f"每日收益分析报告_{model_name}_{date_str}.md"
-    else:
-        report_filename = f"每日收益分析报告_{date_str}.md"
+    report_filename = f"每日收益分析报告_{date_str}.md"
     report_path = os.path.join(report_dir, report_filename)
     
     with open(report_path, 'w', encoding='utf-8') as f:

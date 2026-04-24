@@ -254,9 +254,8 @@ def generate_report(data, report_path, model_name, date_str):
     lines = []
     lines.append(f"# 每日收益分析报告")
     lines.append(f"")
-    lines.append(f"**模型名称**: {model_name}")
     lines.append(f"**分析日期**: {date_str}")
-    lines.append(f"**数据文件**: 日报表_广东汕头市雅威机电实业0.12MW#0.257MWh工商储项目_{date_str}152008.csv")
+    lines.append(f"**数据文件**: 日报表_0.12MW#0.257MWh工商储项目_{date_str}.csv")
     lines.append(f"")
     
     lines.append("## 1. 基础报表 (光伏上网电价 0.1元/度)")
