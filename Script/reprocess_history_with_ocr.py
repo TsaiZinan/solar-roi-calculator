@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import re
@@ -164,13 +165,18 @@ def collect_current_state():
     return current
 
 
-def main():
+def main(use_calibration=False):
     baseline = collect_baseline()
 
     for date_str, item in sorted(baseline.items()):
         image_path = find_image_for_date(date_str)
         print(f"重识别光伏曲线: {date_str}")
-        extract_and_merge(image_path, item["csv_path"])
+        extract_and_merge(
+            image_path,
+            item["csv_path"],
+            date_str=date_str,
+            use_calibration=use_calibration,
+        )
 
     for csv_path in get_daily_csv_paths():
         print(f"重生成收益报告: {csv_path}")
@@ -200,4 +206,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="批量重识别历史光伏截图，并可按需启用 数据校准.csv 进行日发电量校准。"
+    )
+    parser.add_argument(
+        "--use-calibration",
+        action="store_true",
+        help="按需启用 数据/数据校准.csv 中的日发电量校准",
+    )
+    args = parser.parse_args()
+    main(use_calibration=args.use_calibration)

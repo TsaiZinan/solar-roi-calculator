@@ -84,6 +84,14 @@
 - 日度 CSV：来自阳光云导出的 5 分钟间隔报表
 - 光伏截图：用于光伏曲线提取与后续复盘归档
 
+### 可选校准文件
+
+- `数据/数据校准.csv`
+  - 第一列为 `日期`
+  - 第二列为 `每日光伏总发电量`
+  - 用于在“需要校准时”把图片识别出来的日发电量，对齐到人工确认的真实值
+  - 默认不会自动启用，只有在命令中显式加 `--use-calibration` 时才会执行校准
+
 ### 电价文件
 
 - `数据/电网电价.csv`
@@ -190,6 +198,12 @@ python3 Script/init_summary.py
 python3 Script/reprocess_history_with_ocr.py
 ```
 
+如需按 `数据/数据校准.csv` 执行校准：
+
+```bash
+python3 Script/reprocess_history_with_ocr.py --use-calibration
+```
+
 ### 5. 生成年化收益与 ROI 报告
 
 ```bash
@@ -200,6 +214,18 @@ python3 Script/annual_prediction.py
 
 ```bash
 python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> [目标发电量kWh]
+```
+
+如需按 `数据/数据校准.csv` 对指定日期启用校准：
+
+```bash
+python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> --use-calibration
+```
+
+如需手工指定某一天的真实总发电量，也可以直接传入：
+
+```bash
+python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> 523.6
 ```
 
 ## 日常操作建议
@@ -320,6 +346,12 @@ brew install tesseract
 - 修复光伏曲线提取依赖写死纵轴像素比例的问题，改为优先通过 OCR 自动识别纵轴刻度并拟合功率映射
 - 增加 `Script/reprocess_history_with_ocr.py`，支持批量重识别历史截图并一键重生成全部日报和总表
 - 使用新 OCR 提取逻辑对 `20260415` 至 `20260424` 的历史图片执行全量重算，统一修正光伏电量与收益结果
+
+### V7 校准对齐版
+
+- 引入基于 `数据/数据校准.csv` 的日发电量校准能力，可将图片识别结果按人工确认的真实日发电量进行对齐
+- `Script/extract_and_merge_pv.py` 支持通过 `--use-calibration` 自动按日期读取校准值，减少 OCR 提取在缩放和截图差异下产生的累计误差
+- 日常分析流程已支持在需要时启用该校准口径，使单日报告、总收益总表与人工核对结果保持一致
 
 如需查看完整提交历史，请在项目根目录执行：
 

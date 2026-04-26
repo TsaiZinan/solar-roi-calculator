@@ -9,6 +9,7 @@ REPORT_DIR = os.path.join(BASE_DIR, "报告")
 
 GRID_PRICING_PATH = os.path.join(DATA_DIR, "电网电价.csv")
 EV_PRICING_PATH = os.path.join(DATA_DIR, "充电桩定价.csv")
+PV_CALIBRATION_PATH = os.path.join(DATA_DIR, "数据校准.csv")
 SUMMARY_REPORT_PATH = os.path.join(REPORT_DIR, "总收益分析报表.md")
 
 DAILY_REPORT_PREFIX = "每日收益分析报告_"

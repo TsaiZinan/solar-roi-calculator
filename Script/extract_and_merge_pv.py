@@ -1,11 +1,15 @@
+import argparse
 import cv2
 import numpy as np
 import pandas as pd
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 from scipy.interpolate import interp1d
+
+from config import PV_CALIBRATION_PATH
 
 DEFAULT_X_START = 321.0
 DEFAULT_PX_PER_HOUR = 92.0227
@@ -134,7 +138,111 @@ def _detect_y_axis_scale_with_ocr(img):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generation_kwh=None):
+
+def _normalize_date_str(date_str):
+    if date_str is None:
+        return None
+
+    if isinstance(date_str, (int, np.integer)):
+        digits = str(int(date_str))
+    elif isinstance(date_str, (float, np.floating)):
+        if not np.isfinite(date_str):
+            raise ValueError(f"无法识别日期格式: {date_str}")
+        rounded = int(round(float(date_str)))
+        if abs(float(date_str) - rounded) > 1e-6:
+            raise ValueError(f"无法识别日期格式: {date_str}")
+        digits = str(rounded)
+    else:
+        raw_text = str(date_str).strip()
+        if raw_text.endswith(".0"):
+            raw_text = raw_text[:-2]
+        digits = re.sub(r"\D", "", raw_text)
+
+    if len(digits) != 8:
+        raise ValueError(f"无法识别日期格式: {date_str}")
+    return digits
+
+
+def _infer_date_from_paths(*paths):
+    for path in paths:
+        if not path:
+            continue
+        match = re.search(r"(20\d{6})", str(path))
+        if match:
+            return match.group(1)
+    return None
+
+
+def load_calibration_map(calibration_csv_path=PV_CALIBRATION_PATH):
+    if not os.path.exists(calibration_csv_path):
+        raise FileNotFoundError(f"未找到校准文件: {calibration_csv_path}")
+
+    df = pd.read_csv(calibration_csv_path)
+    if df.empty:
+        return {}
+
+    if {"日期", "每日光伏总发电量"}.issubset(df.columns):
+        date_col = "日期"
+        total_col = "每日光伏总发电量"
+    elif len(df.columns) >= 2:
+        date_col = df.columns[0]
+        total_col = df.columns[1]
+    else:
+        raise ValueError("数据校准.csv 至少需要两列：日期、每日光伏总发电量")
+
+    calibration_map = {}
+    for _, row in df.iterrows():
+        raw_date = row.get(date_col)
+        raw_total = row.get(total_col)
+        if pd.isna(raw_date) or pd.isna(raw_total):
+            continue
+
+        date_str = _normalize_date_str(raw_date)
+        try:
+            total_kwh = float(raw_total)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"数据校准.csv 中 {date_str} 的每日光伏总发电量不是有效数字: {raw_total}"
+            ) from exc
+
+        if total_kwh < 0:
+            raise ValueError(f"数据校准.csv 中 {date_str} 的每日光伏总发电量不能为负数")
+
+        calibration_map[date_str] = total_kwh
+
+    return calibration_map
+
+
+def resolve_calibration_target(
+    image_path,
+    csv_path,
+    date_str=None,
+    calibration_csv_path=PV_CALIBRATION_PATH,
+):
+    resolved_date = _normalize_date_str(date_str) if date_str else _infer_date_from_paths(image_path, csv_path)
+    if not resolved_date:
+        print("未能从图片或 CSV 路径推断日期，跳过校准。")
+        return None
+
+    calibration_map = load_calibration_map(calibration_csv_path)
+    target_kwh = calibration_map.get(resolved_date)
+    if target_kwh is None:
+        print(f"校准文件中未配置 {resolved_date} 的每日光伏总发电量，跳过校准。")
+        return None
+
+    print(f"启用校准: {resolved_date} -> 目标日发电量 {target_kwh:.2f} kWh")
+    return target_kwh
+
+
+def extract_and_merge(
+    image_path,
+    csv_path,
+    output_csv_path=None,
+    target_generation_kwh=None,
+    date_str=None,
+    use_calibration=False,
+    calibration_csv_path=PV_CALIBRATION_PATH,
+):
     if output_csv_path is None:
         output_csv_path = csv_path
 
@@ -212,10 +320,19 @@ def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generat
     t_target = np.arange(0, 24, 5/60)
     p_target = f(t_target)
     p_target = np.clip(p_target, 0, None) # 确保没有负值
-    
+
+    if target_generation_kwh is None and use_calibration:
+        target_generation_kwh = resolve_calibration_target(
+            image_path=image_path,
+            csv_path=csv_path,
+            date_str=date_str,
+            calibration_csv_path=calibration_csv_path,
+        )
+
     # 缩放发电量以匹配目标值
+    current_generation = np.sum(p_target) * (5 / 60)
+    print(f"当前图片识别的日发电量: {current_generation:.2f} kWh")
     if target_generation_kwh is not None:
-        current_generation = np.sum(p_target) * (5 / 60)
         if current_generation > 0:
             scale_factor = target_generation_kwh / current_generation
             p_target = p_target * scale_factor
@@ -233,14 +350,30 @@ def extract_and_merge(image_path, csv_path, output_csv_path=None, target_generat
     print(f"Successfully integrated PV power data and saved to {output_csv_path}")
 
 if __name__ == "__main__":
-    import sys
-    target_kwh = None
-    if len(sys.argv) >= 3:
-        IMAGE_PATH = sys.argv[1]
-        CSV_PATH = sys.argv[2]
-        if len(sys.argv) >= 4:
-            target_kwh = float(sys.argv[3])
-    else:
-        raise SystemExit("用法: python3 extract_and_merge_pv.py <图片路径> <CSV路径> [目标发电量kWh]")
-    
-    extract_and_merge(IMAGE_PATH, CSV_PATH, target_generation_kwh=target_kwh)
+    parser = argparse.ArgumentParser(
+        description="从光伏图片提取曲线并回写 CSV，可按需启用数据校准.csv 中的日发电量校准。"
+    )
+    parser.add_argument("image_path", help="图片路径")
+    parser.add_argument("csv_path", help="CSV 路径")
+    parser.add_argument("target_generation_kwh", nargs="?", type=float, help="可选：手工指定目标日发电量(kWh)")
+    parser.add_argument("--date", dest="date_str", help="可选：指定日期，格式如 20260425")
+    parser.add_argument(
+        "--use-calibration",
+        action="store_true",
+        help="按需启用 数据/数据校准.csv 中的日发电量校准",
+    )
+    parser.add_argument(
+        "--calibration-file",
+        default=PV_CALIBRATION_PATH,
+        help="校准文件路径，默认为 数据/数据校准.csv",
+    )
+    args = parser.parse_args()
+
+    extract_and_merge(
+        args.image_path,
+        args.csv_path,
+        target_generation_kwh=args.target_generation_kwh,
+        date_str=args.date_str,
+        use_calibration=args.use_calibration,
+        calibration_csv_path=args.calibration_file,
+    )
