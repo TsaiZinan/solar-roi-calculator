@@ -38,6 +38,15 @@ def rebuild_summary_table():
                     profits[price_key] = (float(m2_total.group(1)), float(m2_extra.group(1)))
                     continue
 
+                m2_new = re.search(
+                    r'经营总收益.*?\*\*([0-9.]+)\*\* 元；其中，上述各项收益中有 \*\*([0-9.]+)\*\* 元由',
+                    block,
+                    re.S
+                )
+                if m2_new:
+                    profits[price_key] = (float(m2_new.group(1)), float(m2_new.group(2)))
+                    continue
+
                 m2_old = re.search(r'额外创收\*\* \*\*([0-9.]+)\*\* 元。\(最终今日实际总利润: \*\*([0-9.]+)\*\* 元\)', block, re.S)
                 if m2_old:
                     profits[price_key] = (float(m2_old.group(2)), float(m2_old.group(1)))
