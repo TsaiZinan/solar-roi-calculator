@@ -154,6 +154,7 @@ def calc_profit_for_price(date_str, stats, pv_price):
         'grid_purchase_cost': 0,
         'grid_to_ev_revenue': 0,
         'ess_to_ev_revenue': 0,
+        'ess_to_factory_savings': 0,
         'grid_to_factory_cost': 0,
         'grid_to_ess_cost': 0,
     }
@@ -186,6 +187,7 @@ def calc_profit_for_price(date_str, stats, pv_price):
         result['grid_purchase_cost'] += st['buy_w'] * buy_p
         result['grid_to_ev_revenue'] += st.get('grid_to_ev', 0) * sell_ev_p
         result['ess_to_ev_revenue'] += st.get('ess_to_ev', 0) * sell_ev_p
+        result['ess_to_factory_savings'] += st.get('ess_to_factory', 0) * buy_p
         result['grid_to_factory_cost'] += st.get('grid_to_factory', 0) * buy_p
         result['grid_to_ess_cost'] += st.get('grid_to_ess', 0) * buy_p
         
@@ -296,11 +298,13 @@ def generate_report(csv_path):
             f"另有 **{result['grid_to_ess_cost']:.2f}** 元购电用于储能充电。"
         )
         lines.append(
-            f"3. **储能供电支撑情况**: 今日储能放电中，直接供充电桩形成收入 **{result['ess_to_ev_revenue']:.2f}** 元。"
+            f"3. **储能供电支撑情况**: 今日储能放电中，直接供充电桩形成收入 **{result['ess_to_ev_revenue']:.2f}** 元，"
+            f"直接供厂区节省电费 **{result['ess_to_factory_savings']:.2f}** 元。"
         )
         lines.append(
             f"4. **经营总收益**: 在当前储能运行结果下，今日实际总收益为 **{result['with_storage_total']:.2f}** 元，"
             f"计算式为 **{result['pv_actual_total']:.2f} + {result['grid_to_ev_revenue']:.2f} + {result['ess_to_ev_revenue']:.2f} - {result['grid_purchase_cost']:.2f} = {result['with_storage_total']:.2f}**；"
+            f"其中，储能供厂区节省电费 **{result['ess_to_factory_savings']:.2f}** 元已体现在电网购电成本下降中；"
             f"其中，上述各项收益中有 **{result['extra_profit']:.2f}** 元由{PRIMARY_ESS['label']}带来。"
         )
         
