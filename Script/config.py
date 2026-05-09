@@ -6,14 +6,18 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(BASE_DIR, "数据")
 REPORT_DIR = os.path.join(BASE_DIR, "报告")
+JSON_DIR = os.path.join(REPORT_DIR, "json")
 
 GRID_PRICING_PATH = os.path.join(DATA_DIR, "电网电价.csv")
 EV_PRICING_PATH = os.path.join(DATA_DIR, "充电桩定价.csv")
 PV_CALIBRATION_PATH = os.path.join(DATA_DIR, "数据校准.csv")
 SUMMARY_REPORT_PATH = os.path.join(REPORT_DIR, "总收益分析报表.md")
+SUMMARY_JSON_PATH = os.path.join(JSON_DIR, "总收益分析报表.json")
 
 DAILY_REPORT_PREFIX = "每日收益分析报告_"
 DAILY_REPORT_PATTERN = os.path.join(REPORT_DIR, f"{DAILY_REPORT_PREFIX}*.md")
+DAILY_JSON_PREFIX = "每日收益分析_"
+DAILY_JSON_PATTERN = os.path.join(JSON_DIR, f"{DAILY_JSON_PREFIX}*.json")
 
 PV_PRICE_SCENARIOS = [
     ("A", 0.1),
@@ -73,10 +77,20 @@ def get_daily_report_path(date_str):
     return os.path.join(REPORT_DIR, f"{DAILY_REPORT_PREFIX}{date_str}.md")
 
 
+def get_daily_json_path(date_str):
+    return os.path.join(JSON_DIR, f"{DAILY_JSON_PREFIX}{date_str}.json")
+
+
 def get_daily_report_paths():
     report_paths = glob.glob(DAILY_REPORT_PATTERN)
     report_paths.sort()
     return report_paths
+
+
+def get_daily_json_paths():
+    json_paths = glob.glob(DAILY_JSON_PATTERN)
+    json_paths.sort()
+    return json_paths
 
 
 def get_daily_csv_paths():
@@ -87,3 +101,4 @@ def get_daily_csv_paths():
 
 def ensure_report_dir():
     os.makedirs(REPORT_DIR, exist_ok=True)
+    os.makedirs(JSON_DIR, exist_ok=True)

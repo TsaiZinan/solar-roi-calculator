@@ -1,6 +1,8 @@
 import pandas as pd
 import sys
 import os
+import json
+from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config import (
     PRIMARY_ESS,
@@ -8,6 +10,7 @@ from config import (
     SUMMARY_REPORT_PATH,
     ensure_report_dir,
     get_daily_report_path,
+    get_daily_json_path,
     get_factory_load,
 )
 from init_summary import rebuild_summary_table
@@ -29,6 +32,16 @@ def get_grid_period_map(date_str):
 
 def get_period_display_order(date_str):
     return _get_period_display_order(date_str)
+
+
+def _round_value(value, digits=4):
+    if isinstance(value, float):
+        return round(value, digits)
+    if isinstance(value, list):
+        return [_round_value(item, digits) for item in value]
+    if isinstance(value, dict):
+        return {key: _round_value(val, digits) for key, val in value.items()}
+    return value
 
 def process_data(csv_path):
     df = pd.read_csv(csv_path)
@@ -199,6 +212,148 @@ def calc_profit_for_price(date_str, stats, pv_price):
     )
     return result
 
+
+def build_period_stats(stats, period_order):
+    periods = {}
+    metric_keys = [
+        'pv', 'ess_c', 'ess_d', 'fac', 'ev', 'buy_w', 'sell_w', 'profit_w_01',
+        'factory_savings', 'pv_to_load', 'pv_to_factory', 'pv_to_ess', 'pv_to_grid',
+        'grid_to_load', 'grid_to_ess',
+    ]
+
+    for period in period_order:
+        periods[period] = {key: 0 for key in metric_keys}
+
+    for st in stats:
+        if 'pv_to_load' not in st:
+            continue
+        period = st['period']
+        if period not in periods:
+            periods[period] = {key: 0 for key in metric_keys}
+        for key in metric_keys:
+            periods[period][key] += st.get(key, 0)
+
+    return periods
+
+
+def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, scenario_results):
+    scenarios = {}
+    for scenario in scenario_results:
+        result = scenario['result']
+        charging_total = (
+            result['pv_to_ev_revenue']
+            + result['grid_to_ev_revenue']
+            + result['ess_to_ev_revenue']
+        )
+        factory_total = result['pv_to_factory_savings'] + result['ess_to_factory_savings']
+        scenarios[scenario['name']] = {
+            'scenario_name': scenario['name'],
+            'pv_feed_in_price': scenario['price'],
+            'daily_revenue': {
+                'total_revenue': result['with_storage_total'],
+                'cash_revenue': result['with_storage_cash'],
+                'without_storage_total_revenue': result['without_storage_total'],
+                'photovoltaic_sale_revenue': {
+                    'total': result['pv_to_grid_revenue'],
+                    'from_storage': 0.0,
+                },
+                'factory_savings_revenue': {
+                    'total': factory_total,
+                    'from_photovoltaic': result['pv_to_factory_savings'],
+                    'from_storage': result['ess_to_factory_savings'],
+                },
+                'charging_pile_revenue': {
+                    'total': charging_total,
+                    'from_photovoltaic': result['pv_to_ev_revenue'],
+                    'from_grid': result['grid_to_ev_revenue'],
+                    'from_storage': result['ess_to_ev_revenue'],
+                },
+                'grid_purchase_cost': result['grid_purchase_cost'],
+                'storage_contribution': {
+                    'total': result['extra_profit'],
+                    'charging_pile_revenue': result['ess_to_ev_revenue'],
+                    'factory_savings_revenue': result['ess_to_factory_savings'],
+                },
+            },
+            'revenue_components': {
+                'photovoltaic': {
+                    'actual_total': result['pv_actual_total'],
+                    'to_grid': result['pv_to_grid_revenue'],
+                    'to_charging_pile': result['pv_to_ev_revenue'],
+                    'to_factory_savings': result['pv_to_factory_savings'],
+                },
+                'grid': {
+                    'purchase_cost': result['grid_purchase_cost'],
+                    'to_factory_cost': result['grid_to_factory_cost'],
+                    'to_storage_cost': result['grid_to_ess_cost'],
+                    'to_charging_pile_revenue': result['grid_to_ev_revenue'],
+                },
+                'storage': {
+                    'extra_profit': result['extra_profit'],
+                    'to_factory_savings': result['ess_to_factory_savings'],
+                    'to_charging_pile_revenue': result['ess_to_ev_revenue'],
+                },
+            },
+        }
+
+    hourly_stats = []
+    for st in stats:
+        hourly_stats.append({
+            'hour': f"{st['hour']:02d}:00",
+            'period': st['period'],
+            'photovoltaic_generation_kwh': st['pv'],
+            'storage_charge_kwh': st['ess_c'],
+            'storage_discharge_kwh': st['ess_d'],
+            'factory_load_kwh': st['fac'],
+            'charging_pile_load_kwh': st['ev'],
+            'grid_purchase_kwh': st['buy_w'],
+            'grid_sale_kwh': st['sell_w'],
+            'factory_savings_revenue': st['factory_savings'],
+            'photovoltaic_to_load_kwh': st.get('pv_to_load', 0),
+            'photovoltaic_to_factory_kwh': st.get('pv_to_factory', 0),
+            'photovoltaic_to_storage_kwh': st.get('pv_to_ess', 0),
+            'photovoltaic_to_grid_kwh': st.get('pv_to_grid', 0),
+            'grid_to_load_kwh': st.get('grid_to_load', 0),
+            'grid_to_storage_kwh': st.get('grid_to_ess', 0),
+        })
+
+    period_stats = []
+    for period in period_order:
+        data = periods.get(period, {})
+        period_stats.append({
+            'period': period,
+            'photovoltaic_generation_kwh': data.get('pv', 0),
+            'storage_charge_kwh': data.get('ess_c', 0),
+            'storage_discharge_kwh': data.get('ess_d', 0),
+            'factory_load_kwh': data.get('fac', 0),
+            'charging_pile_load_kwh': data.get('ev', 0),
+            'grid_purchase_kwh': data.get('buy_w', 0),
+            'grid_sale_kwh': data.get('sell_w', 0),
+            'factory_savings_revenue': data.get('factory_savings', 0),
+            'photovoltaic_to_load_kwh': data.get('pv_to_load', 0),
+            'photovoltaic_to_factory_kwh': data.get('pv_to_factory', 0),
+            'photovoltaic_to_storage_kwh': data.get('pv_to_ess', 0),
+            'photovoltaic_to_grid_kwh': data.get('pv_to_grid', 0),
+            'grid_to_load_kwh': data.get('grid_to_load', 0),
+            'grid_to_storage_kwh': data.get('grid_to_ess', 0),
+        })
+
+    payload = {
+        'date': date_str,
+        'source_csv': os.path.basename(csv_path),
+        'generated_at': datetime.now().isoformat(timespec='seconds'),
+        'storage_system': {
+            'label': PRIMARY_ESS['label'],
+            'capacity_kwh': PRIMARY_ESS['capacity_kwh'],
+            'max_power_kw': PRIMARY_ESS['max_power_kw'],
+        },
+        'period_order': period_order,
+        'period_stats': period_stats,
+        'hourly_stats': hourly_stats,
+        'scenarios': scenarios,
+    }
+    return _round_value(payload)
+
 def generate_report(csv_path):
     date_str, stats = process_data(csv_path)
     period_order = get_period_display_order(date_str)
@@ -216,21 +371,7 @@ def generate_report(csv_path):
         st['profit_w_01'] = st['cash_profit_w_01'] + rev_fac
         st['factory_savings'] = rev_fac
 
-    # Group by period
-    periods = {}
-    for p in period_order:
-        periods[p] = {k: 0 for k in ['pv', 'ess_c', 'ess_d', 'fac', 'ev', 'buy_w', 'sell_w', 'profit_w_01',
-                                     'factory_savings', 'pv_to_load', 'pv_to_factory', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
-        
-    for st in stats:
-        if 'pv_to_load' not in st:
-            continue
-        p = st['period']
-        if p not in periods:
-            periods[p] = {k: 0 for k in ['pv', 'ess_c', 'ess_d', 'fac', 'ev', 'buy_w', 'sell_w', 'profit_w_01',
-                                         'factory_savings', 'pv_to_load', 'pv_to_factory', 'pv_to_ess', 'pv_to_grid', 'grid_to_load', 'grid_to_ess']}
-        for k in periods[p].keys():
-            periods[p][k] += st.get(k, 0)
+    periods = build_period_stats(stats, period_order)
             
     # Markdown Generation
     lines = []
@@ -281,8 +422,14 @@ def generate_report(csv_path):
         
     lines.append("\n## 2. 核心收益结论 (业主视角)")
     
+    scenario_results = []
     for name, price in PV_PRICE_SCENARIOS:
         result = calc_profit_for_price(date_str, stats, price)
+        scenario_results.append({
+            'name': name,
+            'price': price,
+            'result': result,
+        })
         
         lines.append(f"\n### 【场景 {name}：光伏上网电价 {price} 元/度】")
         lines.append(
@@ -311,8 +458,21 @@ def generate_report(csv_path):
     out_path = get_daily_report_path(date_str)
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
+
+    daily_json_path = get_daily_json_path(date_str)
+    daily_json_payload = build_daily_json_payload(
+        csv_path=csv_path,
+        date_str=date_str,
+        stats=stats,
+        period_order=period_order,
+        periods=periods,
+        scenario_results=scenario_results,
+    )
+    with open(daily_json_path, 'w', encoding='utf-8') as f:
+        json.dump(daily_json_payload, f, ensure_ascii=False, indent=2)
         
     print(out_path)
+    print(daily_json_path)
     rebuild_summary_table()
     print(SUMMARY_REPORT_PATH)
 

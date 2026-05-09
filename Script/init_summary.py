@@ -1,9 +1,46 @@
 import re
-from config import SUMMARY_PRICE_KEYS, SUMMARY_REPORT_PATH, get_daily_report_paths
+import json
+from config import (
+    SUMMARY_PRICE_KEYS,
+    SUMMARY_REPORT_PATH,
+    SUMMARY_JSON_PATH,
+    get_daily_report_paths,
+    get_daily_json_paths,
+)
+
+
+def build_default_daily_revenue(total_revenue=0.0, storage_total=0.0):
+    return {
+        'total_revenue': round(float(total_revenue), 4),
+        'cash_revenue': 0.0,
+        'without_storage_total_revenue': 0.0,
+        'photovoltaic_sale_revenue': {
+            'total': 0.0,
+            'from_storage': 0.0,
+        },
+        'factory_savings_revenue': {
+            'total': 0.0,
+            'from_photovoltaic': 0.0,
+            'from_storage': 0.0,
+        },
+        'charging_pile_revenue': {
+            'total': 0.0,
+            'from_photovoltaic': 0.0,
+            'from_grid': 0.0,
+            'from_storage': 0.0,
+        },
+        'grid_purchase_cost': 0.0,
+        'storage_contribution': {
+            'total': round(float(storage_total), 4),
+            'charging_pile_revenue': 0.0,
+            'factory_savings_revenue': 0.0,
+        },
+    }
 
 
 def rebuild_summary_table():
     reports = get_daily_report_paths()
+    summary_json_by_date = {}
 
     with open(SUMMARY_REPORT_PATH, 'w', encoding='utf-8') as f:
         f.write("# 总收益分析报表\n\n")
@@ -61,8 +98,110 @@ def rebuild_summary_table():
                 continue
 
             f.write(f"| {date_str} | {profits['01'][0]:.2f} | {profits['01'][1]:.2f} | {profits['02'][0]:.2f} | {profits['02'][1]:.2f} | {profits['035'][0]:.2f} | {profits['035'][1]:.2f} |\n")
+            summary_json_by_date[date_str] = {
+                'date': date_str,
+                'scenarios': {
+                    '01': {
+                        'scenario_name': 'A',
+                        'pv_feed_in_price': 0.1,
+                        'total_revenue': round(profits['01'][0], 4),
+                        'storage_contribution': round(profits['01'][1], 4),
+                        'daily_revenue': build_default_daily_revenue(profits['01'][0], profits['01'][1]),
+                    },
+                    '02': {
+                        'scenario_name': 'B',
+                        'pv_feed_in_price': 0.2,
+                        'total_revenue': round(profits['02'][0], 4),
+                        'storage_contribution': round(profits['02'][1], 4),
+                        'daily_revenue': build_default_daily_revenue(profits['02'][0], profits['02'][1]),
+                    },
+                    '035': {
+                        'scenario_name': 'C',
+                        'pv_feed_in_price': 0.35,
+                        'total_revenue': round(profits['035'][0], 4),
+                        'storage_contribution': round(profits['035'][1], 4),
+                        'daily_revenue': build_default_daily_revenue(profits['035'][0], profits['035'][1]),
+                    },
+                },
+            }
+
+    for json_path in get_daily_json_paths():
+        with open(json_path, 'r', encoding='utf-8') as json_file:
+            payload = json.load(json_file)
+
+        date_str = payload.get('date')
+        scenarios = payload.get('scenarios', {})
+        if not date_str or not scenarios:
+            continue
+
+        row = summary_json_by_date.get(date_str, {'date': date_str, 'scenarios': {}})
+        for price_key, price_str in SUMMARY_PRICE_KEYS:
+            if price_key not in row['scenarios']:
+                row['scenarios'][price_key] = {
+                    'scenario_name': '',
+                    'pv_feed_in_price': float(price_str),
+                    'total_revenue': 0.0,
+                    'storage_contribution': 0.0,
+                    'daily_revenue': build_default_daily_revenue(),
+                }
+
+        for scenario_key, scenario_payload in scenarios.items():
+            pv_price = scenario_payload.get('pv_feed_in_price')
+            matched_price_key = None
+            for price_key, price_str in SUMMARY_PRICE_KEYS:
+                if abs(float(price_str) - float(pv_price)) < 1e-9:
+                    matched_price_key = price_key
+                    break
+            if matched_price_key is None:
+                continue
+
+            daily_revenue = scenario_payload.get('daily_revenue', {})
+            storage_contribution = daily_revenue.get('storage_contribution', {})
+            row['scenarios'][matched_price_key] = {
+                'scenario_name': scenario_key,
+                'pv_feed_in_price': pv_price,
+                'total_revenue': round(float(daily_revenue.get('total_revenue', 0.0)), 4),
+                'storage_contribution': round(float(storage_contribution.get('total', 0.0)), 4),
+                'daily_revenue': {
+                    'total_revenue': round(float(daily_revenue.get('total_revenue', 0.0)), 4),
+                    'cash_revenue': round(float(daily_revenue.get('cash_revenue', 0.0)), 4),
+                    'without_storage_total_revenue': round(float(daily_revenue.get('without_storage_total_revenue', 0.0)), 4),
+                    'photovoltaic_sale_revenue': {
+                        'total': round(float(daily_revenue.get('photovoltaic_sale_revenue', {}).get('total', 0.0)), 4),
+                        'from_storage': round(float(daily_revenue.get('photovoltaic_sale_revenue', {}).get('from_storage', 0.0)), 4),
+                    },
+                    'factory_savings_revenue': {
+                        'total': round(float(daily_revenue.get('factory_savings_revenue', {}).get('total', 0.0)), 4),
+                        'from_photovoltaic': round(float(daily_revenue.get('factory_savings_revenue', {}).get('from_photovoltaic', 0.0)), 4),
+                        'from_storage': round(float(daily_revenue.get('factory_savings_revenue', {}).get('from_storage', 0.0)), 4),
+                    },
+                    'charging_pile_revenue': {
+                        'total': round(float(daily_revenue.get('charging_pile_revenue', {}).get('total', 0.0)), 4),
+                        'from_photovoltaic': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_photovoltaic', 0.0)), 4),
+                        'from_grid': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_grid', 0.0)), 4),
+                        'from_storage': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_storage', 0.0)), 4),
+                    },
+                    'grid_purchase_cost': round(float(daily_revenue.get('grid_purchase_cost', 0.0)), 4),
+                    'storage_contribution': {
+                        'total': round(float(storage_contribution.get('total', 0.0)), 4),
+                        'charging_pile_revenue': round(float(storage_contribution.get('charging_pile_revenue', 0.0)), 4),
+                        'factory_savings_revenue': round(float(storage_contribution.get('factory_savings_revenue', 0.0)), 4),
+                    },
+                },
+            }
+
+        summary_json_by_date[date_str] = row
+
+    summary_json_rows = [summary_json_by_date[date] for date in sorted(summary_json_by_date)]
+    summary_payload = {
+        'reports': summary_json_rows,
+        'generated_from': 'daily_reports_and_daily_json_files',
+    }
+    with open(SUMMARY_JSON_PATH, 'w', encoding='utf-8') as json_file:
+        json.dump(summary_payload, json_file, ensure_ascii=False, indent=2)
 
     print("初始化总表完成：", SUMMARY_REPORT_PATH)
+    print("初始化总表 JSON 完成：", SUMMARY_JSON_PATH)
 
 
 def main():
