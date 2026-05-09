@@ -1,7 +1,7 @@
 {
   "date": "20260503",
   "source_csv": "日报表_广东汕头市雅威机电实业0.12MW#0.257MWh工商储项目_20260505021052.csv",
-  "generated_at": "2026-05-09T18:26:53",
+  "generated_at": "2026-05-09T20:24:26",
   "storage_system": {
     "label": "当前储能系统(250度)",
     "capacity_kwh": 257.0,
@@ -527,6 +527,25 @@
           "total": 296.3592,
           "charging_pile_revenue": 365.8035,
           "factory_savings_revenue": 35.708
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 20.7026,
+              "share_of_total_revenue": 0.0149
+            },
+            "factory_savings": {
+              "amount": 290.5308,
+              "share_of_total_revenue": 0.2086
+            },
+            "charging_pile": {
+              "amount": 1081.3777,
+              "share_of_total_revenue": 0.7765
+            }
+          },
+          "sum_of_items": 1392.6111
         }
       },
       "revenue_components": {
@@ -576,6 +595,25 @@
           "total": 269.6176,
           "charging_pile_revenue": 365.8035,
           "factory_savings_revenue": 35.708
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 41.4052,
+              "share_of_total_revenue": 0.0293
+            },
+            "factory_savings": {
+              "amount": 290.5308,
+              "share_of_total_revenue": 0.2056
+            },
+            "charging_pile": {
+              "amount": 1081.3777,
+              "share_of_total_revenue": 0.7651
+            }
+          },
+          "sum_of_items": 1413.3137
         }
       },
       "revenue_components": {
@@ -625,6 +663,25 @@
           "total": 229.5051,
           "charging_pile_revenue": 365.8035,
           "factory_savings_revenue": 35.708
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 72.459,
+              "share_of_total_revenue": 0.0502
+            },
+            "factory_savings": {
+              "amount": 290.5308,
+              "share_of_total_revenue": 0.2011
+            },
+            "charging_pile": {
+              "amount": 1081.3777,
+              "share_of_total_revenue": 0.7487
+            }
+          },
+          "sum_of_items": 1444.3675
         }
       },
       "revenue_components": {

@@ -236,6 +236,34 @@ def build_period_stats(stats, period_order):
     return periods
 
 
+def build_net_revenue_breakdown(result):
+    total_revenue = round(result['with_storage_total'], 4)
+    photovoltaic_sale = round(result['pv_to_grid_revenue'], 4)
+    factory_savings = round(result['pv_to_factory_savings'], 4)
+    charging_pile = round(total_revenue - photovoltaic_sale - factory_savings, 4)
+
+    def build_item(amount):
+        share = amount / total_revenue if total_revenue else 0.0
+        return {
+            'amount': amount,
+            'share_of_total_revenue': share,
+        }
+
+    items = {
+        'photovoltaic_sale': build_item(photovoltaic_sale),
+        'factory_savings': build_item(factory_savings),
+        'charging_pile': build_item(charging_pile),
+    }
+    pie_chart_ready = total_revenue > 0 and all(item['amount'] >= 0 for item in items.values())
+
+    return {
+        'allocation_method': 'strict_accounting',
+        'pie_chart_ready': pie_chart_ready,
+        'items': items,
+        'sum_of_items': round(photovoltaic_sale + factory_savings + charging_pile, 4),
+    }
+
+
 def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, scenario_results):
     scenarios = {}
     for scenario in scenario_results:
@@ -246,6 +274,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
             + result['ess_to_ev_revenue']
         )
         factory_total = result['pv_to_factory_savings'] + result['ess_to_factory_savings']
+        net_revenue_breakdown = build_net_revenue_breakdown(result)
         scenarios[scenario['name']] = {
             'scenario_name': scenario['name'],
             'pv_feed_in_price': scenario['price'],
@@ -274,6 +303,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                     'charging_pile_revenue': result['ess_to_ev_revenue'],
                     'factory_savings_revenue': result['ess_to_factory_savings'],
                 },
+                'net_revenue_breakdown': net_revenue_breakdown,
             },
             'revenue_components': {
                 'photovoltaic': {

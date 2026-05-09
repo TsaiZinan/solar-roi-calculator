@@ -35,6 +35,25 @@ def build_default_daily_revenue(total_revenue=0.0, storage_total=0.0):
             'charging_pile_revenue': 0.0,
             'factory_savings_revenue': 0.0,
         },
+        'net_revenue_breakdown': {
+            'allocation_method': 'strict_accounting',
+            'pie_chart_ready': False,
+            'items': {
+                'photovoltaic_sale': {
+                    'amount': 0.0,
+                    'share_of_total_revenue': 0.0,
+                },
+                'factory_savings': {
+                    'amount': 0.0,
+                    'share_of_total_revenue': 0.0,
+                },
+                'charging_pile': {
+                    'amount': 0.0,
+                    'share_of_total_revenue': 0.0,
+                },
+            },
+            'sum_of_items': round(float(total_revenue), 4),
+        },
     }
 
 
@@ -186,6 +205,25 @@ def rebuild_summary_table():
                         'total': round(float(storage_contribution.get('total', 0.0)), 4),
                         'charging_pile_revenue': round(float(storage_contribution.get('charging_pile_revenue', 0.0)), 4),
                         'factory_savings_revenue': round(float(storage_contribution.get('factory_savings_revenue', 0.0)), 4),
+                    },
+                    'net_revenue_breakdown': {
+                        'allocation_method': daily_revenue.get('net_revenue_breakdown', {}).get('allocation_method', 'strict_accounting'),
+                        'pie_chart_ready': bool(daily_revenue.get('net_revenue_breakdown', {}).get('pie_chart_ready', False)),
+                        'items': {
+                            'photovoltaic_sale': {
+                                'amount': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('photovoltaic_sale', {}).get('amount', 0.0)), 4),
+                                'share_of_total_revenue': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('photovoltaic_sale', {}).get('share_of_total_revenue', 0.0)), 6),
+                            },
+                            'factory_savings': {
+                                'amount': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('factory_savings', {}).get('amount', 0.0)), 4),
+                                'share_of_total_revenue': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('factory_savings', {}).get('share_of_total_revenue', 0.0)), 6),
+                            },
+                            'charging_pile': {
+                                'amount': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('charging_pile', {}).get('amount', 0.0)), 4),
+                                'share_of_total_revenue': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('items', {}).get('charging_pile', {}).get('share_of_total_revenue', 0.0)), 6),
+                            },
+                        },
+                        'sum_of_items': round(float(daily_revenue.get('net_revenue_breakdown', {}).get('sum_of_items', 0.0)), 4),
                     },
                 },
             }
