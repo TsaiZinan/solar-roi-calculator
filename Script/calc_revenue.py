@@ -170,12 +170,14 @@ def calc_profit_for_price(date_str, stats, pv_price):
         'ess_to_factory_savings': 0,
         'grid_to_factory_cost': 0,
         'grid_to_ess_cost': 0,
+        'charging_pile_service_fee': 0,
     }
     
     for st in stats:
         h = st['hour']
         buy_p = get_grid_buy_price(date_str, h)
         sell_ev_p = get_ev_sell_price(date_str, h)
+        service_fee_per_kwh = sell_ev_p - buy_p
         
         rev_ev = st['ev'] * sell_ev_p
         rev_fac = st['factory_savings']
@@ -203,6 +205,7 @@ def calc_profit_for_price(date_str, stats, pv_price):
         result['ess_to_factory_savings'] += st.get('ess_to_factory', 0) * buy_p
         result['grid_to_factory_cost'] += st.get('grid_to_factory', 0) * buy_p
         result['grid_to_ess_cost'] += st.get('grid_to_ess', 0) * buy_p
+        result['charging_pile_service_fee'] += st.get('ev', 0) * service_fee_per_kwh
         
     result['extra_profit'] = result['with_storage_total'] - result['without_storage_total']
     result['pv_actual_total'] = (
@@ -296,6 +299,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                     'from_photovoltaic': result['pv_to_ev_revenue'],
                     'from_grid': result['grid_to_ev_revenue'],
                     'from_storage': result['ess_to_ev_revenue'],
+                    'service_fee': result['charging_pile_service_fee'],
                 },
                 'grid_purchase_cost': result['grid_purchase_cost'],
                 'storage_contribution': {

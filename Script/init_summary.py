@@ -201,6 +201,7 @@ def rebuild_summary_table():
                         'from_photovoltaic': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_photovoltaic', 0.0)), 4),
                         'from_grid': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_grid', 0.0)), 4),
                         'from_storage': round(float(daily_revenue.get('charging_pile_revenue', {}).get('from_storage', 0.0)), 4),
+                        'service_fee': round(float(daily_revenue.get('charging_pile_revenue', {}).get('service_fee', 0.0)), 4),
                     },
                     'grid_purchase_cost': round(float(daily_revenue.get('grid_purchase_cost', 0.0)), 4),
                     'storage_contribution': {
