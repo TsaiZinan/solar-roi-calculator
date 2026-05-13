@@ -208,7 +208,8 @@ def calculate_revenue(hourly_stats, grid_prices, ev_prices, pv_feed_in_price):
         pv_sale_revenue_charging += pv_to_charging * ev_price
         pv_sale_revenue_factory += stats['pv_to_factory'] * get_price_for_datetime(grid_prices, datetime(DATE_OBJ.year, DATE_OBJ.month, DATE_OBJ.day, h))
     
-    total_pv_revenue = pv_sale_revenue_grid + pv_sale_revenue_charging + pv_sale_revenue_factory
+    total_pv_revenue = pv_sale_revenue_grid + pv_sale_revenue_factory
+    pv_sale_revenue_charging_only = pv_sale_revenue_charging
     
     grid_purchase_cost = 0
     grid_to_charging_revenue = 0
@@ -241,11 +242,9 @@ def calculate_revenue(hourly_stats, grid_prices, ev_prices, pv_feed_in_price):
                 discharge -= to_factory
             storage_discharge_to_charging += discharge * ev_price
     
-    total_charging_revenue = pv_sale_revenue_charging + grid_to_charging_revenue + storage_discharge_to_charging
+    total_revenue = total_pv_revenue + pv_sale_revenue_charging + grid_to_charging_revenue + storage_discharge_to_charging + storage_discharge_to_factory - grid_purchase_cost
     
-    total_revenue = total_pv_revenue + total_charging_revenue + storage_discharge_to_factory - grid_purchase_cost
-    
-    without_storage_revenue = pv_sale_revenue_grid + pv_sale_revenue_charging + pv_sale_revenue_factory - grid_purchase_cost + grid_to_charging_revenue
+    without_storage_revenue = pv_sale_revenue_grid + pv_sale_revenue_factory + pv_sale_revenue_charging - grid_purchase_cost + grid_to_charging_revenue
     
     storage_extra = total_revenue - without_storage_revenue
     
@@ -375,7 +374,7 @@ def calculate_revenue(hourly_stats, grid_prices, ev_prices, pv_feed_in_price):
                 'from_storage': round(storage_discharge_to_factory, 4),
             },
             'charging_pile_revenue': {
-                'total': round(total_charging_revenue, 4),
+                'total': round(pv_sale_revenue_charging + grid_to_charging_revenue + storage_discharge_to_charging, 4),
                 'from_photovoltaic': round(pv_sale_revenue_charging, 4),
                 'from_grid': round(grid_to_charging_revenue, 4),
                 'from_storage': round(storage_discharge_to_charging, 4),
@@ -487,7 +486,7 @@ def generate_markdown_report(date_str, scenarios_results, hourly_stats, period_o
         lines.append(f"1. **光伏发电收益**: 今日光伏发电共实现收益 **{pv_total_revenue:.2f}** 元，其中上网售电收益 **{pv_sale_total:.2f}** 元，供充电桩使用收益 **{charging_pv:.2f}** 元，供厂区自用节省电费 **{factory_pv:.2f}** 元。")
         lines.append(f"2. **电网购电支撑情况**: 今日从电网购电共支出 **{grid_cost:.2f}** 元，其中直接供充电桩形成收入 **{charging_grid:.2f}** 元，直接供厂区对应购电成本 **{summary.get('grid_to_factory_cost', 0):.2f}** 元，另有 **{summary.get('grid_to_storage_cost', 0):.2f}** 元购电用于储能充电。")
         lines.append(f"3. **储能供电支撑情况**: 今日储能放电中，直接供充电桩形成收入 **{charging_storage:.2f}** 元，直接供厂区节省电费 **{factory_storage:.2f}** 元。")
-        lines.append(f"4. **经营总收益**: 在当前储能运行结果下，今日实际总收益为 **{total_rev:.2f}** 元，计算式为 **{pv_total_revenue:.2f} + {charging_grid:.2f} + {charging_storage:.2f} - {grid_cost:.2f} = {total_rev:.2f}**；其中，储能供厂区节省电费 **{factory_storage:.2f}** 元已体现在电网购电成本下降中；其中，上述各项收益中有 **{storage_extra:.2f}** 元由当前储能系统(250度)带来。\n")
+        lines.append(f"4. **经营总收益**: 在当前储能运行结果下，今日实际总收益为 **{total_rev:.2f}** 元，计算式为 **{pv_total_revenue:.2f}（光伏）+ {charging_grid:.2f}（电网供充电桩）+ {charging_storage:.2f}（储能供充电桩）+ {factory_storage:.2f}（储能供厂区）- {grid_cost:.2f}（电网购电）= {total_rev:.2f}**；其中，上述各项收益中有 **{storage_extra:.2f}** 元由当前储能系统(250度)带来。\n")
     
     report_path = os.path.join(REPORT_DIR, f"每日收益分析报告_{date_str}.md")
     with open(report_path, 'w', encoding='utf-8') as f:
