@@ -2,6 +2,7 @@ import pandas as pd
 import sys
 import os
 import json
+import re
 from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config import (
@@ -43,9 +44,43 @@ def _round_value(value, digits=4):
         return {key: _round_value(val, digits) for key, val in value.items()}
     return value
 
+
+def _format_capacity_label(capacity_kwh):
+    rounded = round(capacity_kwh)
+    if abs(capacity_kwh - rounded) < 1e-9:
+        return str(int(rounded))
+    return f"{capacity_kwh:.1f}".rstrip('0').rstrip('.')
+
+
+def infer_storage_system_from_csv_path(csv_path):
+    basename = os.path.basename(csv_path)
+    match = re.search(r'(\d+(?:\.\d+)?)MW#(\d+(?:\.\d+)?)MWh', basename, re.I)
+    if not match:
+        return dict(PRIMARY_ESS)
+
+    max_power_kw = float(match.group(1)) * 1000.0
+    capacity_kwh = float(match.group(2)) * 1000.0
+    label_capacity = _format_capacity_label(capacity_kwh)
+    return {
+        'capacity_kwh': capacity_kwh,
+        'max_power_kw': max_power_kw,
+        'efficiency': PRIMARY_ESS.get('efficiency', 0.95),
+        'label': f"当前储能系统({label_capacity}度)",
+    }
+
 def process_data(csv_path):
     df = pd.read_csv(csv_path)
     df['时间'] = pd.to_datetime(df['时间'])
+    numeric_columns = [
+        '储能有功功率(kW)',
+        '电网功率(kW)',
+        '负载功率(kW)',
+        'SOC(%)',
+        '光伏发电功率(kW)',
+    ]
+    for column in numeric_columns:
+        if column in df.columns:
+            df[column] = pd.to_numeric(df[column], errors='coerce').fillna(0.0)
     dt = 5 / 60.0
     date_str = df['时间'].dt.strftime('%Y%m%d').iloc[0]
     period_map = get_grid_period_map(date_str)
@@ -268,6 +303,7 @@ def build_net_revenue_breakdown(result):
 
 
 def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, scenario_results):
+    storage_system = infer_storage_system_from_csv_path(csv_path)
     scenarios = {}
     for scenario in scenario_results:
         result = scenario['result']
@@ -377,9 +413,9 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
         'source_csv': os.path.basename(csv_path),
         'generated_at': datetime.now().isoformat(timespec='seconds'),
         'storage_system': {
-            'label': PRIMARY_ESS['label'],
-            'capacity_kwh': PRIMARY_ESS['capacity_kwh'],
-            'max_power_kw': PRIMARY_ESS['max_power_kw'],
+            'label': storage_system['label'],
+            'capacity_kwh': storage_system['capacity_kwh'],
+            'max_power_kw': storage_system['max_power_kw'],
         },
         'period_order': period_order,
         'period_stats': period_stats,
@@ -390,6 +426,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
 
 def generate_report(csv_path):
     date_str, stats = process_data(csv_path)
+    storage_system = infer_storage_system_from_csv_path(csv_path)
     period_order = get_period_display_order(date_str)
     
     # Calculate base profit (0.1) for tables
@@ -486,7 +523,7 @@ def generate_report(csv_path):
             f"4. **经营总收益**: 在当前储能运行结果下，今日实际总收益为 **{result['with_storage_total']:.2f}** 元，"
             f"计算式为 **{result['pv_actual_total']:.2f} + {result['grid_to_ev_revenue']:.2f} + {result['ess_to_ev_revenue']:.2f} - {result['grid_purchase_cost']:.2f} = {result['with_storage_total']:.2f}**；"
             f"其中，储能供厂区节省电费 **{result['ess_to_factory_savings']:.2f}** 元已体现在电网购电成本下降中；"
-            f"其中，上述各项收益中有 **{result['extra_profit']:.2f}** 元由{PRIMARY_ESS['label']}带来。"
+            f"其中，上述各项收益中有 **{result['extra_profit']:.2f}** 元由{storage_system['label']}带来。"
         )
         
     out_path = get_daily_report_path(date_str)
