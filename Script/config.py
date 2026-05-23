@@ -36,17 +36,37 @@ FACTORY_LOAD_WINDOWS = [
     (13, 18, 50.0),
 ]
 
-PRIMARY_ESS = {
+ESS_EFFICIENCY = 0.95
+SECOND_ESS_START_DATE = "20260519"
+
+FIRST_ESS = {
     "capacity_kwh": 257.0,
-    "max_power_kw": 120.0,
-    "efficiency": 0.95,
-    "label": "当前储能系统(250度)",
+    "max_power_kw": 125.0,
+    "efficiency": ESS_EFFICIENCY,
+    "label": "当前储能系统(257度)",
 }
+
+SECOND_ESS = {
+    "capacity_kwh": 257.0,
+    "max_power_kw": 125.0,
+    "efficiency": ESS_EFFICIENCY,
+    "label": "新增第2台储能(257度)",
+}
+
+TOTAL_ESS = {
+    "capacity_kwh": FIRST_ESS["capacity_kwh"] + SECOND_ESS["capacity_kwh"],
+    "max_power_kw": FIRST_ESS["max_power_kw"] + SECOND_ESS["max_power_kw"],
+    "efficiency": ESS_EFFICIENCY,
+    "label": "当前储能系统(514度)",
+}
+
+# Backward-compatible alias used when CSV file names do not expose storage specs.
+PRIMARY_ESS = dict(FIRST_ESS)
 
 ANNUAL_PREDICTION_ESS_SETUPS = [
     ("base", 0.0, 0.0),
-    ("ess_1", 257.0, 120.0),
-    ("ess_2", 507.0, 240.0),
+    ("ess_1", FIRST_ESS["capacity_kwh"], FIRST_ESS["max_power_kw"]),
+    ("ess_2", TOTAL_ESS["capacity_kwh"], TOTAL_ESS["max_power_kw"]),
 ]
 
 ANNUAL_WEATHER_DAY_COUNTS = {
@@ -71,6 +91,12 @@ def get_factory_load(hour):
         if start_hour <= hour < end_hour:
             return load_kw
     return 0.0
+
+
+def get_storage_system_for_date(date_str):
+    if date_str and date_str >= SECOND_ESS_START_DATE:
+        return dict(TOTAL_ESS)
+    return dict(FIRST_ESS)
 
 
 def get_daily_report_path(date_str):

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from config import REPORT_DIR, get_factory_load
+from config import ESS_EFFICIENCY, FIRST_ESS, REPORT_DIR, SECOND_ESS, TOTAL_ESS, get_factory_load
 from pricing import get_ev_sell_price, get_grid_buy_price, get_grid_period_map
 
 
@@ -31,7 +31,7 @@ def load_day_df(csv_path: str) -> pd.DataFrame:
     return df
 
 
-def simulate(df: pd.DataFrame, spec: ESSSpec, efficiency: float = 0.95):
+def simulate(df: pd.DataFrame, spec: ESSSpec, efficiency: float = ESS_EFFICIENCY):
     date_str = df["时间"].dt.strftime("%Y%m%d").iloc[0]
     period_map = get_grid_period_map(date_str)
 
@@ -209,7 +209,9 @@ def build_report(csv_path: str, one: ESSSpec, two: ESSSpec, output_path: str):
     lines.append(f"# 新增第2台储能收益拆解分析报告 - {day}")
     lines.append("")
     lines.append("## 1. 分析目标与问题定义")
-    lines.append("- 目标：验证“新增 1 台 125kW / 250kWh 储能”后，收益提升是否已经完整考虑了两类因素：")
+    lines.append(
+        f"- 目标：验证“新增 1 台 {SECOND_ESS['max_power_kw']:.0f}kW / {SECOND_ESS['capacity_kwh']:.0f}kWh 储能”后，收益提升是否已经完整考虑了两类因素："
+    )
     lines.append("  - 部分时段减少向电网购电")
     lines.append("  - 吸纳更多光伏余电")
     lines.append("- 对比对象：")
@@ -228,7 +230,9 @@ def build_report(csv_path: str, one: ESSSpec, two: ESSSpec, output_path: str):
     lines.append("- 收益公式：`利润 = 充电桩收入 + 工厂省电收益 + 光伏上网收入 - 电网购电成本`。")
     lines.append("")
     lines.append("## 3. 总体结果")
-    lines.append("| 指标 | 1台(250kWh/125kW) | 2台(500kWh/250kW) | 增量(2台-1台) |")
+    lines.append(
+        f"| 指标 | 1台({one.capacity_kwh:.0f}kWh/{one.power_kw:.0f}kW) | 2台({two.capacity_kwh:.0f}kWh/{two.power_kw:.0f}kW) | 增量(2台-1台) |"
+    )
     lines.append("|:---|---:|---:|---:|")
     lines.append(f"| 电网总购电量(度) | {fmt(one_totals['grid_buy_total_kwh'])} | {fmt(two_totals['grid_buy_total_kwh'])} | {fmt(two_totals['grid_buy_total_kwh']-one_totals['grid_buy_total_kwh'])} |")
     lines.append(f"| 其中：负载购电(度) | {fmt(one_totals['grid_buy_load_kwh'])} | {fmt(two_totals['grid_buy_load_kwh'])} | {fmt(two_totals['grid_buy_load_kwh']-one_totals['grid_buy_load_kwh'])} |")
@@ -307,7 +311,9 @@ def build_report(csv_path: str, one: ESSSpec, two: ESSSpec, output_path: str):
     lines.append("- 你的疑问在模型中已被纳入：")
     lines.append("  - 新增储能减少电网购电：已显式计入，且是本日收益增量主因。")
     lines.append("  - 新增储能吸纳光伏余电：已显式计入，但在本日对“净新增收益”的边际贡献较小。")
-    lines.append(f"- {day} 这一天，新增 1 台 125kW/250kWh 的净新增收益为 **{fmt(net_grid_cost_saving)} 元/天**。")
+    lines.append(
+        f"- {day} 这一天，新增 1 台 {SECOND_ESS['max_power_kw']:.0f}kW/{SECOND_ESS['capacity_kwh']:.0f}kWh 的净新增收益为 **{fmt(net_grid_cost_saving)} 元/天**。"
+    )
     lines.append("- 在当前策略下（谷段优先充满），第2台储能出现明显边际收益递减。")
     lines.append("")
     lines.append("## 9. 附：口径一致性说明")
@@ -326,8 +332,8 @@ def main():
     parser.add_argument("--output", help="输出报告路径")
     args = parser.parse_args()
 
-    one = ESSSpec("1台储能", 250.0, 125.0)
-    two = ESSSpec("2台储能", 500.0, 250.0)
+    one = ESSSpec("1台储能", FIRST_ESS["capacity_kwh"], FIRST_ESS["max_power_kw"])
+    two = ESSSpec("2台储能", TOTAL_ESS["capacity_kwh"], TOTAL_ESS["max_power_kw"])
     if args.output:
         output_path = args.output
     else:

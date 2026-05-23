@@ -8,12 +8,14 @@ from config import (
     ANNUAL_PREDICTION_ESS_SETUPS,
     ANNUAL_WEATHER_DAY_COUNTS,
     DATA_DIR,
+    FIRST_ESS,
     PRIMARY_ESS,
     PV_PRICE_SCENARIOS,
     REPORT_DIR,
     ROI_INVESTMENT_BASE_WAN,
     ROI_INVESTMENT_ESS_WAN,
     ROI_REPORT_NAME,
+    TOTAL_ESS,
     get_factory_load as get_factory_load_kw,
 )
 from pricing import get_ev_sell_price, get_grid_buy_price, get_grid_period_map
@@ -224,7 +226,8 @@ def run_annual_prediction():
 
 ## 1. 核心投资假设参数
 - **光伏 + 充电站系统**：预估投资 **175 万元**
-- **单台储能柜 (约 250度/257度)**：预估投资 **22 万元**
+- **第 1 台储能柜**：容量 **{FIRST_ESS["capacity_kwh"]:.0f} kWh**，功率 **{FIRST_ESS["max_power_kw"]:.0f} kW**，预估投资 **22 万元**
+- **双储能总配置**：容量 **{TOTAL_ESS["capacity_kwh"]:.0f} kWh**，功率 **{TOTAL_ESS["max_power_kw"]:.0f} kW**
 
 ---
 

@@ -10,6 +10,7 @@ from config import (
     PV_PRICE_SCENARIOS,
     SUMMARY_REPORT_PATH,
     ensure_report_dir,
+    get_storage_system_for_date,
     get_daily_report_path,
     get_daily_json_path,
     get_factory_load,
@@ -55,18 +56,25 @@ def _format_capacity_label(capacity_kwh):
 def infer_storage_system_from_csv_path(csv_path):
     basename = os.path.basename(csv_path)
     match = re.search(r'(\d+(?:\.\d+)?)MW#(\d+(?:\.\d+)?)MWh', basename, re.I)
+    date_match = re.search(r'(20\d{6})', csv_path)
+    date_str = date_match.group(1) if date_match else ""
+    date_based_system = get_storage_system_for_date(date_str)
     if not match:
-        return dict(PRIMARY_ESS)
+        return date_based_system
 
     max_power_kw = float(match.group(1)) * 1000.0
     capacity_kwh = float(match.group(2)) * 1000.0
     label_capacity = _format_capacity_label(capacity_kwh)
-    return {
+
+    inferred_system = {
         'capacity_kwh': capacity_kwh,
         'max_power_kw': max_power_kw,
         'efficiency': PRIMARY_ESS.get('efficiency', 0.95),
         'label': f"当前储能系统({label_capacity}度)",
     }
+    if date_str and date_based_system['capacity_kwh'] != capacity_kwh:
+        return date_based_system
+    return inferred_system
 
 def process_data(csv_path):
     df = pd.read_csv(csv_path)
