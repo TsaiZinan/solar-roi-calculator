@@ -3,7 +3,7 @@
 本项目用于计算光伏、储能与充电桩一体化系统的每日收益、历史汇总收益和全年收益预测。
 
 项目当前重点解决三类问题：
-- 基于日度 CSV 数据生成每日报告
+- 基于日度 CSV 和光伏 Excel 数据生成每日报告
 - 自动汇总多天日报形成总收益分析报表
 - 在统一参数配置下进行全年收益与 ROI 预测
 
@@ -17,6 +17,8 @@
 - `Script/calc_revenue.py`：生成单日收益分析报告
 - `Script/regenerate_reports.py`：批量重生成历史日报
 - `Script/init_summary.py`：按现有日报重建总表
+- `Script/import_excel_pv.py`：将单日光伏 Excel 数据回写到 CSV
+- `Script/reprocess_history_with_excel.py`：先对比 Excel 口径差异，再按确认结果更新历史报告
 - `Script/annual_prediction.py`：生成年化收益和 ROI 报告
 
 ## 目录结构
@@ -45,15 +47,18 @@
 - `Script/regenerate_reports.py`
   - 批量扫描 `数据/20*/` 下的日度 CSV
   - 逐日重生成日报和总表
-- `Script/reprocess_history_with_ocr.py`
-  - 批量重识别历史光伏截图并回写 CSV
-  - 再按新光伏数据重生成全部日报和总表
+- `Script/pv_excel_source.py`
+  - 读取 `电站能量趋势数据_*.xlsx` 中的 5 分钟光伏功率数据
+  - 负责按日期匹配 CSV、归档 Excel 并回写 `光伏发电功率(kW)` 列
+- `Script/import_excel_pv.py`
+  - 将单个 Excel 的光伏数据回写到指定日度 CSV
+  - 可选将 Excel 和 CSV 一起归档到 `数据/YYYYMMDD/`
+- `Script/reprocess_history_with_excel.py`
+  - 批量对比“当前 CSV/报表”与“Excel 光伏数据源”的差异
+  - 默认只生成对比结果，确认后再正式写回 CSV 并重生成全部日报和总表
 - `Script/annual_prediction.py`
   - 基于样本天和配置参数推算全年收益
   - 输出 ROI 报告
-- `Script/extract_and_merge_pv.py`
-  - 从光伏曲线图片中提取发电曲线并写回 CSV
-  - 优先通过 OCR 读取纵轴刻度自动标定功率比例，失败时回退到默认参数
 
 ## 配置说明
 
@@ -77,22 +82,17 @@
 ```text
 数据/
   20260423/
-    20260423.jpg
     日报表_...csv
+    电站能量趋势数据_...xlsx
 ```
 
 ### 必需文件
 
 - 日度 CSV：来自阳光云导出的 5 分钟间隔报表
-- 光伏截图：用于光伏曲线提取与后续复盘归档
-
-### 可选校准文件
-
-- `数据/数据校准.csv`
-  - 第一列为 `日期`
-  - 第二列为 `每日光伏总发电量`
-  - 用于在“需要校准时”把图片识别出来的日发电量，对齐到人工确认的真实值
-  - 默认不会自动启用，只有在命令中显式加 `--use-calibration` 时才会执行校准
+- 光伏 Excel：文件名形如 `电站能量趋势数据_*.xlsx`
+  - 使用 `能量趋势` sheet
+  - 第二行表头中需包含 `日期` 与 `光伏发电功率 (kW)`
+  - 项目会直接读取其中的 5 分钟光伏功率序列，不再依赖截图、OCR 或校准文件
 
 ### 电价文件
 
@@ -150,11 +150,7 @@
 - 修复口径：现已改为仅统计“实际由光伏直供工厂负载”的那部分电量，再乘以对应时段电网购电价格。
 - 报告表述同步调整：`光伏纯卖电收益` 已改名为 `光伏全额上网理论值`，并明确标注“仅作对比，非当日实际可实现收益”。
 - 数据修复动作：已使用 `python3 Script/regenerate_reports.py` 对全部历史日报和 `报告/总收益分析报表.md` 执行全量重生成。
-- 修复时间：`2026-04-25`
-- 问题现象：旧版 `extract_and_merge_pv.py` 依赖写死的纵轴像素比例，在截图缩放、分辨率或裁切略有变化时，会显著高估或低估光伏发电功率。
-- 实际影响：历史光伏发电曲线提取结果整体偏差较大，进而联动影响工厂省电收益、经营总收益和总收益分析报表。
-- 修复口径：现已优先通过 OCR 读取纵轴刻度，自动拟合 `y_zero` 与 `px_per_100kw`；若 OCR 失败，再回退到默认参数。
-- 数据修复动作：已使用 `python3 Script/reprocess_history_with_ocr.py` 重新识别全部历史图片，并重生成全部日报与总表。
+- 当前版本已废弃“截图 -> OCR/校准 -> CSV”的链路，统一改为直接读取 `电站能量趋势数据_*.xlsx` 中的实测光伏功率。
 
 ### 储能效率
 
@@ -198,16 +194,16 @@ python3 Script/regenerate_reports.py
 python3 Script/init_summary.py
 ```
 
-### 4. 批量重识别历史图片并重算全部报告
+### 4. 先对比 Excel 新口径，再决定是否更新历史报告
 
 ```bash
-python3 Script/reprocess_history_with_ocr.py
+python3 Script/reprocess_history_with_excel.py
 ```
 
-如需按 `数据/数据校准.csv` 执行校准：
+确认差异后，正式写回 CSV、归档 Excel 并重生成历史日报/总表：
 
 ```bash
-python3 Script/reprocess_history_with_ocr.py --use-calibration
+python3 Script/reprocess_history_with_excel.py --apply
 ```
 
 ### 5. 生成年化收益与 ROI 报告
@@ -216,22 +212,16 @@ python3 Script/reprocess_history_with_ocr.py --use-calibration
 python3 Script/annual_prediction.py
 ```
 
-### 6. 从图片提取光伏曲线并回写 CSV
+### 6. 将单日 Excel 光伏数据回写 CSV
 
 ```bash
-python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> [目标发电量kWh]
+python3 Script/import_excel_pv.py <Excel路径> <CSV路径>
 ```
 
-如需按 `数据/数据校准.csv` 对指定日期启用校准：
+如需在回写前自动归档到对应日期目录：
 
 ```bash
-python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> --use-calibration
-```
-
-如需手工指定某一天的真实总发电量，也可以直接传入：
-
-```bash
-python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> 523.6
+python3 Script/import_excel_pv.py <Excel路径> <CSV路径> --archive
 ```
 
 ## 日常操作建议
@@ -239,13 +229,14 @@ python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> 523.6
 ### 普通使用者
 
 - 每天在 `数据/` 下新建日期目录
-- 放入当天 CSV 和光伏截图
+- 放入当天 CSV 和光伏 Excel
 - 在对话中输入 `每日分析`
 
 ### 维护者
 
 - 修改参数时优先改 `Script/config.py`
-- 口径变更后先批量重生成历史日报
+- 光伏口径切换时，先执行 `python3 Script/reprocess_history_with_excel.py` 查看差异
+- 确认无误后，再执行 `python3 Script/reprocess_history_with_excel.py --apply`
 - 再重建总表，确认历史数据已与新口径对齐
 - 如需保留旧版本报表，使用“初始备份版”等明确命名
 
@@ -255,21 +246,12 @@ python3 Script/extract_and_merge_pv.py <图片路径> <CSV路径> 523.6
 
 脚本涉及的主要依赖包括：
 - `pandas`
-- `numpy`
-- `scipy`
-- `opencv-python`
-- 系统 `tesseract` 命令行工具（推荐安装，用于光伏曲线图片的纵轴 OCR 标定）
+- `openpyxl`
 
 如需安装，可参考：
 
 ```bash
-pip install pandas numpy scipy opencv-python
-```
-
-如需启用光伏截图纵轴 OCR，macOS 可参考：
-
-```bash
-brew install tesseract
+pip install pandas openpyxl
 ```
 
 ## 常见问题
@@ -347,25 +329,19 @@ brew install tesseract
 - 调整 `光伏纯卖电收益` 文案为 `光伏全额上网理论值`，避免与当日实际收益混淆
 - 对全部历史日报和总收益总表执行全量重生成，确保历史结果与新口径一致
 
-### 1.5 OCR 重标定
-
-- 修复光伏曲线提取依赖写死纵轴像素比例的问题，改为优先通过 OCR 自动识别纵轴刻度并拟合功率映射
-- 新增 `Script/reprocess_history_with_ocr.py`，支持批量重识别历史截图并一键重生成全部日报和总表
-- 使用新 OCR 提取逻辑对 `20260415` 至 `20260424` 的历史图片执行全量重算，统一修正光伏电量与收益结果
-
-### 1.6 校准对齐
-
-- 引入基于 `数据/数据校准.csv` 的日发电量校准能力，可将图片识别结果按人工确认的真实日发电量进行对齐
-- 新增 `Script/extract_and_merge_pv.py` 对 `--use-calibration` 的支持，可按日期自动读取校准值，减少 OCR 提取在缩放和截图差异下产生的累计误差
-- 调整日常分析流程，使其在需要时可启用该校准口径，保持单日报告、总收益总表与人工核对结果一致
-
-### 1.7 口径对齐
+### 1.5 口径对齐
 
 - 调整 `Script/calc_revenue.py` 的“核心收益结论”为三种光伏上网电价场景输出，并统一为 `光伏发电收益`、`电网购电支撑情况` 与 `经营总收益` 三段式表述
 - 调整日报中的储能贡献表述为“其中，上述各项收益中有 XXX 元由储能带来”，避免与总收益口径发生重复理解
 - 修复 `Script/init_summary.py` 对新版日报文案的兼容性，确保 `报告/总收益分析报表.md` 在新旧表述下都能正确提取经营总收益和储能额外收益
 - 新增 `Script/annual_prediction.py` 对 `0.35 元/度` ROI 场景 C 的支持，并将关键投资建议改为随测算结果自动更新的区间表述
 - 对全部历史日报和 ROI 报告执行重生成，确保日报、总表和年化报告在场景口径与文案表达上保持一致
+
+### 1.6 Excel 实测光伏
+
+- 废弃截图 OCR、图片归档和校准 CSV 方案，统一改为直接读取 `电站能量趋势数据_*.xlsx` 中的实测光伏功率
+- 新增 `Script/pv_excel_source.py`、`Script/import_excel_pv.py` 与 `Script/reprocess_history_with_excel.py`
+- 新流程默认先生成新旧差异对比，待人工确认后再正式更新 CSV 与全部报告，降低整库口径切换风险
 
 如需查看完整提交历史，请在项目根目录执行：
 

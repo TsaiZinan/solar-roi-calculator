@@ -10,9 +10,9 @@ JSON_DIR = os.path.join(REPORT_DIR, "json")
 
 GRID_PRICING_PATH = os.path.join(DATA_DIR, "电网电价.csv")
 EV_PRICING_PATH = os.path.join(DATA_DIR, "充电桩定价.csv")
-PV_CALIBRATION_PATH = os.path.join(DATA_DIR, "数据校准.csv")
 SUMMARY_REPORT_PATH = os.path.join(REPORT_DIR, "总收益分析报表.md")
 SUMMARY_JSON_PATH = os.path.join(JSON_DIR, "总收益分析报表.json")
+PV_EXCEL_PREFIX = "电站能量趋势数据_"
 
 DAILY_REPORT_PREFIX = "每日收益分析报告_"
 DAILY_REPORT_PATTERN = os.path.join(REPORT_DIR, f"{DAILY_REPORT_PREFIX}*.md")
@@ -123,6 +123,14 @@ def get_daily_csv_paths():
     csv_paths = glob.glob(os.path.join(DATA_DIR, "20*/*.csv"))
     csv_paths.sort()
     return csv_paths
+
+
+def get_daily_excel_paths(include_archived=False):
+    excel_paths = glob.glob(os.path.join(DATA_DIR, f"{PV_EXCEL_PREFIX}*.xlsx"))
+    if include_archived:
+        excel_paths.extend(glob.glob(os.path.join(DATA_DIR, "20*", f"{PV_EXCEL_PREFIX}*.xlsx")))
+    excel_paths = sorted(set(excel_paths))
+    return excel_paths
 
 
 def ensure_report_dir():
