@@ -1,8 +1,9 @@
 import pandas as pd
-from config import EV_PRICING_PATH, GRID_PRICING_PATH
+from config import EV_PRICING_PATH, GRID_PRICING_PATH, SPOT_REALTIME_PRICING_PATH
 
 _pricing_df = None
 _grid_pricing_df = None
+_spot_realtime_df = None
 
 def _load_grid_pricing_df():
     global _grid_pricing_df
@@ -32,10 +33,37 @@ def _load_ev_pricing_df():
     return _pricing_df
 
 
+def _load_spot_realtime_df():
+    global _spot_realtime_df
+
+    if _spot_realtime_df is None:
+        if not SPOT_REALTIME_PRICING_PATH or not pd.io.common.file_exists(SPOT_REALTIME_PRICING_PATH):
+            return None
+
+        df = pd.read_csv(SPOT_REALTIME_PRICING_PATH)
+        if df.empty:
+            _spot_realtime_df = df
+            return _spot_realtime_df
+
+        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df["hour"] = df["hour"].astype(str).str[:2].astype(int)
+        df["realtime_price_yuan_per_MWh"] = pd.to_numeric(
+            df["realtime_price_yuan_per_MWh"], errors="coerce"
+        )
+        _spot_realtime_df = df.dropna(subset=["realtime_price_yuan_per_MWh"]).reset_index(drop=True)
+
+    return _spot_realtime_df
+
+
 def _normalize_target_date(target_date):
     if isinstance(target_date, str):
         return pd.to_datetime(target_date)
     return target_date
+
+
+def _normalize_target_date_str(target_date):
+    normalized = _normalize_target_date(target_date)
+    return normalized.strftime("%Y-%m-%d")
 
 
 def _get_latest_record(df, target_date):
@@ -152,3 +180,28 @@ def get_ev_sell_price(target_date, hour):
         return float(record[hour_str])
 
     return _get_default_ev_sell_price(hour)
+
+
+def get_realtime_pv_price_schedule(target_date):
+    df = _load_spot_realtime_df()
+    if df is None or df.empty:
+        return {}
+
+    date_str = _normalize_target_date_str(target_date)
+    day_rows = df[df["date"] == date_str]
+    if day_rows.empty:
+        return {}
+
+    return {
+        int(row.hour): float(row.realtime_price_yuan_per_MWh) / 1000.0
+        for row in day_rows.itertuples(index=False)
+    }
+
+
+def has_full_realtime_pv_price_schedule(target_date):
+    schedule = get_realtime_pv_price_schedule(target_date)
+    return len(schedule) == 24
+
+
+def get_realtime_pv_sell_price(target_date, hour):
+    return get_realtime_pv_price_schedule(target_date).get(hour)

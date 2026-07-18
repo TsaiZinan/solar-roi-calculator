@@ -10,7 +10,7 @@ import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from calc_revenue import calc_profit_for_price, generate_report, process_data
+from calc_revenue import build_fixed_scenarios, calc_profit_for_scenario, generate_report, process_data
 from config import DATA_DIR
 from pv_excel_source import (
     archive_daily_inputs,
@@ -88,8 +88,12 @@ def simulate_excel_metrics(excel_path, csv_path):
         merge_result = merge_excel_curve_into_csv(excel_path, csv_path, output_csv_path=temp_csv_path)
         date_str, stats = process_data(temp_csv_path)
         report_metrics = {}
-        for price_key, price in [("01", 0.1), ("02", 0.2), ("035", 0.35)]:
-            result = calc_profit_for_price(date_str, stats, price)
+        fixed_scenarios = {
+            scenario["key"]: scenario
+            for scenario in build_fixed_scenarios()
+        }
+        for price_key, scenario_key in [("01", "A"), ("02", "B"), ("035", "C")]:
+            result = calc_profit_for_scenario(date_str, stats, fixed_scenarios[scenario_key])
             report_metrics[price_key] = {
                 "with_storage_total": round(result["with_storage_total"], 2),
                 "extra_profit": round(result["extra_profit"], 2),

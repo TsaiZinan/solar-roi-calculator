@@ -57,6 +57,26 @@ def build_default_daily_revenue(total_revenue=0.0, storage_total=0.0):
     }
 
 
+def build_default_scenario(pv_feed_in_price=None, pv_feed_in_price_label=""):
+    return {
+        'scenario_name': '',
+        'pv_feed_in_price': pv_feed_in_price,
+        'pv_feed_in_price_label': pv_feed_in_price_label,
+        'pv_pricing_mode': 'fixed',
+        'total_revenue': 0.0,
+        'storage_contribution': 0.0,
+        'daily_revenue': build_default_daily_revenue(),
+    }
+
+
+def get_realtime_summary_tuple(row):
+    scenario = row.get('scenarios', {}).get('rt', {})
+    return (
+        float(scenario.get('total_revenue', 0.0)),
+        float(scenario.get('storage_contribution', 0.0)),
+    )
+
+
 def rebuild_summary_table():
     reports = get_daily_report_paths()
     summary_json_by_date = {}
@@ -156,31 +176,42 @@ def rebuild_summary_table():
         pv_generation_by_date[date_str] = round(total_pv_gen, 2)
 
         row = summary_json_by_date.get(date_str, {'date': date_str, 'scenarios': {}})
+        row['selected_scenario'] = payload.get('selected_scenario')
+        row['pricing_strategy'] = payload.get('pricing_strategy', {})
+        if 'rt' not in row['scenarios']:
+            row['scenarios']['rt'] = build_default_scenario(
+                pv_feed_in_price=None,
+                pv_feed_in_price_label='实时电价',
+            )
         for price_key, price_str in SUMMARY_PRICE_KEYS:
             if price_key not in row['scenarios']:
-                row['scenarios'][price_key] = {
-                    'scenario_name': '',
-                    'pv_feed_in_price': float(price_str),
-                    'total_revenue': 0.0,
-                    'storage_contribution': 0.0,
-                    'daily_revenue': build_default_daily_revenue(),
-                }
+                row['scenarios'][price_key] = build_default_scenario(
+                    pv_feed_in_price=float(price_str),
+                    pv_feed_in_price_label=f'{price_str}元/度',
+                )
 
         for scenario_key, scenario_payload in scenarios.items():
-            pv_price = scenario_payload.get('pv_feed_in_price')
-            matched_price_key = None
-            for price_key, price_str in SUMMARY_PRICE_KEYS:
-                if abs(float(price_str) - float(pv_price)) < 1e-9:
-                    matched_price_key = price_key
-                    break
+            if scenario_key == 'RT' or scenario_payload.get('pv_pricing_mode') == 'realtime':
+                matched_price_key = 'rt'
+            else:
+                matched_price_key = None
+                pv_price = scenario_payload.get('pv_feed_in_price')
+                for price_key, price_str in SUMMARY_PRICE_KEYS:
+                    if abs(float(price_str) - float(pv_price)) < 1e-9:
+                        matched_price_key = price_key
+                        break
             if matched_price_key is None:
                 continue
+
+            pv_price = scenario_payload.get('pv_feed_in_price')
 
             daily_revenue = scenario_payload.get('daily_revenue', {})
             storage_contribution = daily_revenue.get('storage_contribution', {})
             row['scenarios'][matched_price_key] = {
                 'scenario_name': scenario_key,
                 'pv_feed_in_price': pv_price,
+                'pv_feed_in_price_label': scenario_payload.get('pv_feed_in_price_label', ''),
+                'pv_pricing_mode': scenario_payload.get('pv_pricing_mode', 'fixed'),
                 'total_revenue': round(float(daily_revenue.get('total_revenue', 0.0)), 4),
                 'storage_contribution': round(float(storage_contribution.get('total', 0.0)), 4),
                 'daily_revenue': {
@@ -236,8 +267,8 @@ def rebuild_summary_table():
     # Write markdown summary table
     with open(SUMMARY_REPORT_PATH, 'w', encoding='utf-8') as f:
         f.write("# 总收益分析报表\n\n")
-        f.write("| 日期 | 每日光伏发电量(度) | 经营总收益(光伏电价0.1元/度) | 储能额外收益(光伏电价0.1元/度) | 经营总收益(光伏电价0.2元/度) | 储能额外收益(光伏电价0.2元/度) | 经营总收益(光伏电价0.35元/度) | 储能额外收益(光伏电价0.35元/度) |\n")
-        f.write("|:---|---:|---:|---:|---:|---:|---:|---:|\n")
+        f.write("| 日期 | 每日光伏发电量(度) | 经营总收益(实时电价) | 储能额外收益(实时电价) | 经营总收益(光伏电价0.1元/度) | 储能额外收益(光伏电价0.1元/度) | 经营总收益(光伏电价0.2元/度) | 储能额外收益(光伏电价0.2元/度) | 经营总收益(光伏电价0.35元/度) | 储能额外收益(光伏电价0.35元/度) |\n")
+        f.write("|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
 
         for date_str in sorted(summary_json_by_date.keys()):
             row = summary_json_by_date[date_str]
@@ -249,8 +280,13 @@ def rebuild_summary_table():
                     '02': (row['scenarios']['02']['total_revenue'], row['scenarios']['02']['storage_contribution']),
                     '035': (row['scenarios']['035']['total_revenue'], row['scenarios']['035']['storage_contribution']),
                 }
+            realtime_total, realtime_storage = get_realtime_summary_tuple(row)
             pv_gen = pv_generation_by_date.get(date_str, 0)
-            f.write(f"| {date_str} | {pv_gen} | {profits['01'][0]:.2f} | {profits['01'][1]:.2f} | {profits['02'][0]:.2f} | {profits['02'][1]:.2f} | {profits['035'][0]:.2f} | {profits['035'][1]:.2f} |\n")
+            f.write(
+                f"| {date_str} | {pv_gen} | {realtime_total:.2f} | {realtime_storage:.2f} | "
+                f"{profits['01'][0]:.2f} | {profits['01'][1]:.2f} | {profits['02'][0]:.2f} | {profits['02'][1]:.2f} | "
+                f"{profits['035'][0]:.2f} | {profits['035'][1]:.2f} |\n"
+            )
 
     # Build JSON summary rows
     summary_json_rows = []

@@ -10,6 +10,7 @@ JSON_DIR = os.path.join(REPORT_DIR, "json")
 
 GRID_PRICING_PATH = os.path.join(DATA_DIR, "电网电价.csv")
 EV_PRICING_PATH = os.path.join(DATA_DIR, "充电桩定价.csv")
+SPOT_REALTIME_PRICING_PATH = os.path.join(DATA_DIR, "spot_realtime_prices.csv")
 SUMMARY_REPORT_PATH = os.path.join(REPORT_DIR, "总收益分析报表.md")
 SUMMARY_JSON_PATH = os.path.join(JSON_DIR, "总收益分析报表.json")
 PV_EXCEL_PREFIX = "电站能量趋势数据_"
@@ -120,8 +121,9 @@ def get_daily_json_paths():
 
 
 def get_daily_csv_paths():
-    csv_paths = glob.glob(os.path.join(DATA_DIR, "20*/*.csv"))
-    csv_paths.sort()
+    csv_paths = glob.glob(os.path.join(DATA_DIR, "日报表_*.csv"))
+    csv_paths.extend(glob.glob(os.path.join(DATA_DIR, "20*", "日报表_*.csv")))
+    csv_paths = sorted(set(csv_paths))
     return csv_paths
 
 
