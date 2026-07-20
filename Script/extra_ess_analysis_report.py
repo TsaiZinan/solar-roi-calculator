@@ -24,7 +24,11 @@ def load_day_df(csv_path: str) -> pd.DataFrame:
     df["时间"] = pd.to_datetime(df["时间"])
     df["真实总负载(kW)"] = df["光伏发电功率(kW)"] - df["负载功率(kW)"]
     df["工厂用电(kW)"] = df.apply(
-        lambda row: min(max(row["真实总负载(kW)"], 0.0), get_factory_load(row["时间"].hour)),
+        lambda row: get_factory_load(
+            row["时间"].strftime("%Y%m%d"),
+            row["时间"].hour,
+            max(row["真实总负载(kW)"], 0.0),
+        ),
         axis=1,
     )
     df["充电桩用电(kW)"] = (df["真实总负载(kW)"] - df["工厂用电(kW)"]).clip(lower=0.0)

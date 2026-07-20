@@ -21,6 +21,7 @@ ENERGY_KEYS = [
     "storage_discharge_kwh",
     "factory_load_kwh",
     "charging_pile_load_kwh",
+    "station_loss_kwh",
     "grid_purchase_kwh",
     "grid_sale_kwh",
     "factory_savings_revenue",
@@ -163,6 +164,7 @@ def aggregate_month_data(payloads):
                 "storage_discharge_kwh": float(row.get("storage_discharge_kwh", 0.0)),
                 "factory_load_kwh": float(row.get("factory_load_kwh", 0.0)),
                 "charging_pile_load_kwh": float(row.get("charging_pile_load_kwh", 0.0)),
+                "station_loss_kwh": float(row.get("station_loss_kwh", 0.0)),
                 "grid_purchase_kwh": float(row.get("grid_purchase_kwh", 0.0)),
                 "grid_sale_kwh": float(row.get("grid_sale_kwh", 0.0)),
                 "factory_savings_revenue": float(row.get("factory_savings_revenue", 0.0)),
@@ -252,6 +254,14 @@ def aggregate_month_data(payloads):
 
 def build_monthly_payload(month_str, payloads, aggregated):
     storage_labels = sorted({normalize_storage_label(payload.get("storage_system", {})) for payload in payloads})
+    load_rule_versions = sorted(
+        {
+            payload.get("load_split_rule", {}).get("version")
+            for payload in payloads
+            if payload.get("load_split_rule", {}).get("version")
+        }
+    )
+    loss_model = payloads[-1].get("loss_model", {})
     return round_nested(
         {
             "month": month_str,
@@ -261,6 +271,9 @@ def build_monthly_payload(month_str, payloads, aggregated):
             "source_daily_json_count": len(payloads),
             "source_daily_json_files": [f"每日收益分析_{payload['date']}.json" for payload in payloads],
             "storage_labels": storage_labels,
+            "load_split_rule_versions": load_rule_versions,
+            "load_split_rule": payloads[-1].get("load_split_rule", {}),
+            "loss_model": loss_model,
             "generated_at": datetime.now().isoformat(timespec="seconds"),
             "period_order": aggregated["period_order"],
             "period_stats": [
@@ -404,6 +417,8 @@ def render_report(month_str, payloads, aggregated):
     start_date = payloads[0]["date"]
     end_date = payloads[-1]["date"]
     storage_summary = aggregate_storage_summary(payloads)
+    load_split_rule = payloads[-1].get("load_split_rule", {})
+    loss_model = payloads[-1].get("loss_model", {})
     period_order = aggregated["period_order"]
     period_stats = aggregated["period_stats"]
     total_days = len(payloads)
@@ -416,21 +431,25 @@ def render_report(month_str, payloads, aggregated):
     lines.append(f"**数据范围**: {start_date} - {end_date}")
     lines.append(f"**覆盖天数**: {total_days} 天")
     lines.append(f"**储能口径**: {storage_summary}")
+    if load_split_rule.get("summary"):
+        lines.append(f"**负载拆分口径**: {load_split_rule['summary']}")
+    if loss_model.get("summary"):
+        lines.append(f"**损耗口径**: {loss_model['summary']}")
     lines.append(f"**实时电价天数**: {int(pricing_mode_counts.get('realtime', 0))} 天")
     lines.append(f"**固定兜底天数**: {int(pricing_mode_counts.get('fixed', 0))} 天")
     lines.append("")
     lines.append(base_title)
     lines.append("### 1.1 分时段汇总 (按电价标签自动分组)")
     lines.append(
-        f"| 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {profit_column} |"
+        f"| 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 站内损耗(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {profit_column} |"
     )
-    lines.append("|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for period in period_order:
         row = period_stats[period]
         lines.append(
             f"| {period} | {fmt_number(row['photovoltaic_generation_kwh'])} | {fmt_number(row['storage_charge_kwh'])} | "
             f"{fmt_number(row['storage_discharge_kwh'])} | {fmt_number(row['factory_load_kwh'])} | "
-            f"{fmt_number(row['charging_pile_load_kwh'])} | {fmt_number(row['factory_savings_revenue'])} | "
+            f"{fmt_number(row['charging_pile_load_kwh'])} | {fmt_number(row.get('station_loss_kwh', 0))} | {fmt_number(row['factory_savings_revenue'])} | "
             f"{fmt_number(row['grid_purchase_kwh'])} | {fmt_number(row['grid_sale_kwh'])} | {fmt_number(row['selected_profit'])} |"
         )
 
@@ -441,9 +460,9 @@ def render_report(month_str, payloads, aggregated):
     lines.append("")
     lines.append("### 1.4 每小时详细报表")
     lines.append(
-        f"| 小时 | 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {profit_column} |"
+        f"| 小时 | 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 站内损耗(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {profit_column} |"
     )
-    lines.append("|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for row in aggregated["hourly_stats"]:
         lines.append(
             f"| {row['hour']} | {row['period']} | {fmt_number(row['photovoltaic_generation_kwh'])} | "

@@ -1,5 +1,7 @@
 import glob
 import os
+import csv
+from functools import lru_cache
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -7,6 +9,7 @@ BASE_DIR = os.path.dirname(SCRIPT_DIR)
 DATA_DIR = os.path.join(BASE_DIR, "数据")
 REPORT_DIR = os.path.join(BASE_DIR, "报告")
 JSON_DIR = os.path.join(REPORT_DIR, "json")
+FACTORY_FIT_HOURLY_PATH = os.path.join(JSON_DIR, "工厂用电拟合_202606_逐日逐小时_修正后.csv")
 
 GRID_PRICING_PATH = os.path.join(DATA_DIR, "电网电价.csv")
 EV_PRICING_PATH = os.path.join(DATA_DIR, "充电桩定价.csv")
@@ -33,9 +36,14 @@ SUMMARY_PRICE_KEYS = [
 ]
 
 FACTORY_LOAD_WINDOWS = [
-    (7, 12, 50.0),
+    (7, 13, 50.0),
     (13, 18, 50.0),
 ]
+NIGHT_BASELOAD_HOURS = tuple(range(0, 6)) + tuple(range(18, 24))
+NIGHT_BASELOAD_KW = 8.1375
+LOSS_STATIC_KW = 9.6798
+LOSS_DYNAMIC_RATIO = 0.1365
+LOAD_SPLIT_RULE_VERSION = "factory-fit-june-loss-v3"
 
 ESS_EFFICIENCY = 0.95
 SECOND_ESS_START_DATE = "20260519"
@@ -87,11 +95,111 @@ ROI_INVESTMENT_BASE_WAN = 175.0
 ROI_INVESTMENT_ESS_WAN = 22.0
 
 
-def get_factory_load(hour):
-    for start_hour, end_hour, load_kw in FACTORY_LOAD_WINDOWS:
-        if start_hour <= hour < end_hour:
-            return load_kw
-    return 0.0
+def is_night_baseload_hour(hour):
+    return int(hour) in NIGHT_BASELOAD_HOURS
+
+
+def _normalize_hour_text(hour):
+    if isinstance(hour, str):
+        return hour if ":" in hour else f"{int(hour):02d}:00"
+    return f"{int(hour):02d}:00"
+
+
+@lru_cache(maxsize=1)
+def _load_factory_fit_hourly_map():
+    mapping = {}
+    if not os.path.exists(FACTORY_FIT_HOURLY_PATH):
+        return mapping
+    with open(FACTORY_FIT_HOURLY_PATH, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            date_str = row.get("日期", "")
+            hour_text = row.get("小时", "")
+            try:
+                corrected_kwh = float(row.get("新版修正后厂区用电(度)", 0) or 0)
+            except Exception:
+                corrected_kwh = 0.0
+            mapping[(date_str, hour_text)] = corrected_kwh
+    return mapping
+
+
+def get_factory_fit_load_for_june(date_str, hour):
+    hour_text = _normalize_hour_text(hour)
+    return _load_factory_fit_hourly_map().get((str(date_str), hour_text))
+
+
+def get_factory_load(date_or_hour, hour=None, total_load_kw=None):
+    if hour is None:
+        date_str = None
+        hour = int(date_or_hour)
+    else:
+        date_str = str(date_or_hour) if date_or_hour is not None else None
+        hour = int(hour)
+
+    load_kw = 0.0
+    fitted_kw = None
+    if date_str and date_str.startswith("202606"):
+        fitted_kw = get_factory_fit_load_for_june(date_str, hour)
+    if fitted_kw is not None and fitted_kw > 0:
+        load_kw = fitted_kw
+    else:
+        for start_hour, end_hour, window_load_kw in FACTORY_LOAD_WINDOWS:
+            if start_hour <= hour < end_hour:
+                load_kw = window_load_kw
+                break
+        else:
+            if is_night_baseload_hour(hour):
+                load_kw = NIGHT_BASELOAD_KW
+
+    if total_load_kw is None:
+        return load_kw
+    return min(max(float(total_load_kw), 0.0), load_kw)
+
+
+def split_ev_and_loss_load(total_load_kw, factory_load_kw):
+    remaining_kw = max(0.0, float(total_load_kw) - float(factory_load_kw))
+    if remaining_kw <= 0:
+        return 0.0, 0.0
+    if remaining_kw <= LOSS_STATIC_KW:
+        return 0.0, remaining_kw
+    ev_kw = max(0.0, (remaining_kw - LOSS_STATIC_KW) / (1.0 + LOSS_DYNAMIC_RATIO))
+    loss_kw = max(0.0, remaining_kw - ev_kw)
+    return ev_kw, loss_kw
+
+
+def get_load_split_rule_payload():
+    return {
+        "version": LOAD_SPLIT_RULE_VERSION,
+        "day_factory_windows": [
+            {
+                "start_hour": start_hour,
+                "end_hour": end_hour,
+                "factory_load_kw": load_kw,
+            }
+            for start_hour, end_hour, load_kw in FACTORY_LOAD_WINDOWS
+        ],
+        "night_baseload_hours": [f"{hour:02d}:00" for hour in NIGHT_BASELOAD_HOURS],
+        "night_baseload_kw": NIGHT_BASELOAD_KW,
+        "june_daytime_factory_fit_source": os.path.basename(FACTORY_FIT_HOURLY_PATH),
+        "summary": (
+            "2026年6月白天 07:00-12:00、13:00-18:00 工厂负荷按 6 月拟合逐日逐小时数据估算；"
+            "其他日期白天仍按 50kW 估算；"
+            "夜间 18:00-05:59 工厂基础负荷按 8.1375kW 估算；"
+            "各时段工厂负荷均不超过该时段真实总负载。"
+        ),
+    }
+
+
+def get_loss_model_payload():
+    return {
+        "static_loss_kw": LOSS_STATIC_KW,
+        "dynamic_loss_ratio": LOSS_DYNAMIC_RATIO,
+        "formula": "站内损耗 = 静态损耗 + 动态损耗；动态损耗 = 可计费充电负荷 * 0.1365",
+        "summary": (
+            "充电、变压和储能损耗按静态损耗 9.6798kW 与动态损耗 "
+            "0.1365 * 可计费充电负荷 计算。"
+        ),
+    }
 
 
 def get_storage_system_for_date(date_str):

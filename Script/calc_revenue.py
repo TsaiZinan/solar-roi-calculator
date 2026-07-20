@@ -16,6 +16,9 @@ from config import (
     get_daily_json_path,
     get_daily_report_path,
     get_factory_load,
+    get_load_split_rule_payload,
+    get_loss_model_payload,
+    split_ev_and_loss_load,
     get_storage_system_for_date,
 )
 from init_summary import rebuild_summary_table
@@ -133,6 +136,7 @@ def process_data(csv_path):
                     "ess_d": 0,
                     "fac": 0,
                     "ev": 0,
+                    "loss": 0,
                     "buy_w": 0,
                     "sell_w": 0,
                     "buy_no": 0,
@@ -147,6 +151,7 @@ def process_data(csv_path):
         ess_d = 0
         fac = 0
         ev = 0
+        loss = 0
         buy_w = 0
         sell_w = 0
         buy_no = 0
@@ -156,13 +161,16 @@ def process_data(csv_path):
         pv_to_grid = 0
         pv_to_factory = 0
         pv_to_ev = 0
+        pv_to_loss = 0
         ess_to_factory = 0
         ess_to_ev = 0
+        ess_to_loss = 0
         ess_to_grid = 0
         grid_to_load = 0
         grid_to_ess = 0
         grid_to_factory = 0
         grid_to_ev = 0
+        grid_to_loss = 0
         factory_savings_total = 0
 
         for _, row in hour_df.iterrows():
@@ -173,8 +181,8 @@ def process_data(csv_path):
             raw_load = row.get("负载功率(kW)", 0)
             r_total_load = max(0, r_pv - raw_load)
 
-            r_fac = get_factory_load(h)
-            r_ev = max(0, r_total_load - r_fac)
+            r_fac = get_factory_load(date_str, h, r_total_load)
+            r_ev, r_loss = split_ev_and_loss_load(r_total_load, r_fac)
 
             r_ess = row.get("储能有功功率(kW)", 0)
             r_ess_c = abs(r_ess) if r_ess < 0 else 0
@@ -190,21 +198,25 @@ def process_data(csv_path):
             r_factory_load = min(r_fac, r_total_load)
             r_pv_to_factory = min(r_pv, r_factory_load)
             r_pv_to_ev = min(max(0, r_pv - r_pv_to_factory), r_ev)
-            r_pv_to_load = r_pv_to_factory + r_pv_to_ev
+            r_pv_to_loss = min(max(0, r_pv - r_pv_to_factory - r_pv_to_ev), r_loss)
+            r_pv_to_load = r_pv_to_factory + r_pv_to_ev + r_pv_to_loss
             r_pv_to_ess = min(max(0, r_pv - r_pv_to_load), r_ess_c)
             r_pv_to_grid = max(0, r_pv - r_pv_to_load - r_pv_to_ess)
 
             # 2. 储能放电优先补足厂区与充电桩剩余负载，若仍有剩余则记为上网
             r_factory_after_pv = max(0, r_factory_load - r_pv_to_factory)
             r_ev_after_pv = max(0, r_ev - r_pv_to_ev)
+            r_loss_after_pv = max(0, r_loss - r_pv_to_loss)
             r_ess_to_factory = min(r_ess_d, r_factory_after_pv)
             r_ess_to_ev = min(max(0, r_ess_d - r_ess_to_factory), r_ev_after_pv)
-            r_ess_to_grid = max(0, r_ess_d - r_ess_to_factory - r_ess_to_ev)
+            r_ess_to_loss = min(max(0, r_ess_d - r_ess_to_factory - r_ess_to_ev), r_loss_after_pv)
+            r_ess_to_grid = max(0, r_ess_d - r_ess_to_factory - r_ess_to_ev - r_ess_to_loss)
 
             # 3. 电网购电补足剩余负载，并承担光伏未覆盖的储能充电电量
             r_grid_to_factory = max(0, r_factory_after_pv - r_ess_to_factory)
             r_grid_to_ev = max(0, r_ev_after_pv - r_ess_to_ev)
-            r_grid_to_load = r_grid_to_factory + r_grid_to_ev
+            r_grid_to_loss = max(0, r_loss_after_pv - r_ess_to_loss)
+            r_grid_to_load = r_grid_to_factory + r_grid_to_ev + r_grid_to_loss
             r_grid_to_ess = max(0, r_ess_c - r_pv_to_ess)
 
             pv += r_pv * dt
@@ -212,6 +224,7 @@ def process_data(csv_path):
             ess_d += r_ess_d * dt
             fac += r_fac * dt
             ev += r_ev * dt
+            loss += r_loss * dt
             buy_w += r_buy_w * dt
             sell_w += r_sell_w * dt
             buy_no += max(0, grid_no) * dt
@@ -221,15 +234,18 @@ def process_data(csv_path):
             pv_to_load += r_pv_to_load * dt
             pv_to_factory += r_pv_to_factory * dt
             pv_to_ev += r_pv_to_ev * dt
+            pv_to_loss += r_pv_to_loss * dt
             pv_to_ess += r_pv_to_ess * dt
             pv_to_grid += r_pv_to_grid * dt
             ess_to_factory += r_ess_to_factory * dt
             ess_to_ev += r_ess_to_ev * dt
+            ess_to_loss += r_ess_to_loss * dt
             ess_to_grid += r_ess_to_grid * dt
             grid_to_load += r_grid_to_load * dt
             grid_to_ess += r_grid_to_ess * dt
             grid_to_factory += r_grid_to_factory * dt
             grid_to_ev += r_grid_to_ev * dt
+            grid_to_loss += r_grid_to_loss * dt
             factory_savings_total += factory_savings
 
         hourly_stats.append(
@@ -241,6 +257,7 @@ def process_data(csv_path):
                 "ess_d": ess_d,
                 "fac": fac,
                 "ev": ev,
+                "loss": loss,
                 "buy_w": buy_w,
                 "sell_w": sell_w,
                 "buy_no": buy_no,
@@ -248,15 +265,18 @@ def process_data(csv_path):
                 "pv_to_load": pv_to_load,
                 "pv_to_factory": pv_to_factory,
                 "pv_to_ev": pv_to_ev,
+                "pv_to_loss": pv_to_loss,
                 "pv_to_ess": pv_to_ess,
                 "pv_to_grid": pv_to_grid,
                 "ess_to_factory": ess_to_factory,
                 "ess_to_ev": ess_to_ev,
+                "ess_to_loss": ess_to_loss,
                 "ess_to_grid": ess_to_grid,
                 "grid_to_load": grid_to_load,
                 "grid_to_ess": grid_to_ess,
                 "grid_to_factory": grid_to_factory,
                 "grid_to_ev": grid_to_ev,
+                "grid_to_loss": grid_to_loss,
                 "factory_savings": factory_savings_total,
             }
         )
@@ -409,6 +429,7 @@ def build_period_stats(stats, period_order):
         "ess_d",
         "fac",
         "ev",
+        "loss",
         "buy_w",
         "sell_w",
         "profit_selected",
@@ -419,6 +440,7 @@ def build_period_stats(stats, period_order):
         "pv_to_grid",
         "grid_to_load",
         "grid_to_ess",
+        "grid_to_loss",
     ]
 
     for period in period_order:
@@ -533,6 +555,8 @@ def _build_scenario_payload(scenario, result):
 
 def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, scenario_results, selected_scenario):
     storage_system = infer_storage_system_from_csv_path(csv_path)
+    load_split_rule = get_load_split_rule_payload()
+    loss_model = get_loss_model_payload()
     scenarios = {}
     selected_payload = None
     for scenario_result in scenario_results:
@@ -554,6 +578,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                 "storage_discharge_kwh": st["ess_d"],
                 "factory_load_kwh": st["fac"],
                 "charging_pile_load_kwh": st["ev"],
+                "station_loss_kwh": st.get("loss", 0),
                 "grid_purchase_kwh": st["buy_w"],
                 "grid_sale_kwh": st["sell_w"],
                 "factory_savings_revenue": st["factory_savings"],
@@ -563,6 +588,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                 "photovoltaic_to_grid_kwh": st.get("pv_to_grid", 0),
                 "grid_to_load_kwh": st.get("grid_to_load", 0),
                 "grid_to_storage_kwh": st.get("grid_to_ess", 0),
+                "grid_to_loss_kwh": st.get("grid_to_loss", 0),
                 "selected_pv_price": st.get("selected_pv_price"),
                 "selected_profit": st.get("profit_selected", 0),
             }
@@ -579,6 +605,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                 "storage_discharge_kwh": data.get("ess_d", 0),
                 "factory_load_kwh": data.get("fac", 0),
                 "charging_pile_load_kwh": data.get("ev", 0),
+                "station_loss_kwh": data.get("loss", 0),
                 "grid_purchase_kwh": data.get("buy_w", 0),
                 "grid_sale_kwh": data.get("sell_w", 0),
                 "factory_savings_revenue": data.get("factory_savings", 0),
@@ -588,6 +615,7 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
                 "photovoltaic_to_grid_kwh": data.get("pv_to_grid", 0),
                 "grid_to_load_kwh": data.get("grid_to_load", 0),
                 "grid_to_storage_kwh": data.get("grid_to_ess", 0),
+                "grid_to_loss_kwh": data.get("grid_to_loss", 0),
                 "selected_profit": data.get("profit_selected", 0),
             }
         )
@@ -601,6 +629,8 @@ def build_daily_json_payload(csv_path, date_str, stats, period_order, periods, s
             "capacity_kwh": storage_system["capacity_kwh"],
             "max_power_kw": storage_system["max_power_kw"],
         },
+        "load_split_rule": load_split_rule,
+        "loss_model": loss_model,
         "pricing_strategy": {
             "selected_scenario_key": selected_scenario["key"],
             "selected_scenario_name": selected_scenario["name"],
@@ -696,17 +726,19 @@ def generate_report(csv_path):
     lines.append(f"# 每日收益分析报告 - {date_str}")
     lines.append("")
     lines.append(f"**数据文件**: {os.path.basename(csv_path)}")
+    lines.append(f"**负载拆分口径**: {get_load_split_rule_payload()['summary']}")
+    lines.append(f"**损耗口径**: {get_loss_model_payload()['summary']}")
     lines.append("")
     lines.append(selected_section_title)
     lines.append("### 1.1 分时段汇总 (按电价标签自动分组)")
     lines.append(
-        f"| 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {selected_profit_column} |"
+        f"| 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 站内损耗(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {selected_profit_column} |"
     )
-    lines.append("|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for period in period_order:
         data = periods[period]
         lines.append(
-            f"| {period} | {data['pv']:.4g} | {data['ess_c']:.4g} | {data['ess_d']:.4g} | {data['fac']:.4g} | {data['ev']:.4g} | {data['factory_savings']:.4g} | {data['buy_w']:.4g} | {data['sell_w']:.4g} | {data['profit_selected']:.4g} |"
+            f"| {period} | {data['pv']:.4g} | {data['ess_c']:.4g} | {data['ess_d']:.4g} | {data['fac']:.4g} | {data['ev']:.4g} | {data.get('loss', 0):.4g} | {data['factory_savings']:.4g} | {data['buy_w']:.4g} | {data['sell_w']:.4g} | {data['profit_selected']:.4g} |"
         )
 
     lines.append("\n### 1.2 光伏发电的流向与时间分布")
@@ -742,12 +774,12 @@ def generate_report(csv_path):
 
     lines.append("\n### 1.4 每小时详细报表")
     lines.append(
-        f"| 小时 | 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {selected_profit_column} |"
+        f"| 小时 | 时段 | 光伏产电量(度) | 储能充电量(度) | 储能放电量(度) | 工厂用电量(度) | 充电桩用电量(度) | 站内损耗(度) | 工厂省电收益(元) | 向电网买电量(度) | 向电网卖电量(度) | {selected_profit_column} |"
     )
-    lines.append("|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    lines.append("|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for st in stats:
         lines.append(
-            f"| {st['hour']:02d}:00 | {st['period']} | {st['pv']:.4g} | {st['ess_c']:.4g} | {st['ess_d']:.4g} | {st['fac']:.4g} | {st['ev']:.4g} | {st['factory_savings']:.4g} | {st['buy_w']:.4g} | {st['sell_w']:.4g} | {st['profit_selected']:.4g} |"
+            f"| {st['hour']:02d}:00 | {st['period']} | {st['pv']:.4g} | {st['ess_c']:.4g} | {st['ess_d']:.4g} | {st['fac']:.4g} | {st['ev']:.4g} | {st.get('loss', 0):.4g} | {st['factory_savings']:.4g} | {st['buy_w']:.4g} | {st['sell_w']:.4g} | {st['profit_selected']:.4g} |"
         )
 
     lines.append("\n## 2. 核心收益结论 (业主视角)")
