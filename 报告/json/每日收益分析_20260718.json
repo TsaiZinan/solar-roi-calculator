@@ -1,0 +1,882 @@
+{
+  "date": "20260718",
+  "source_csv": "日报表_广东汕头市雅威机电实业0.25MW#0.514MWh工商储项目_20260720153805.csv",
+  "generated_at": "2026-07-20T15:43:38",
+  "storage_system": {
+    "label": "当前储能系统(514度)",
+    "capacity_kwh": 514.0,
+    "max_power_kw": 250.0
+  },
+  "pricing_strategy": {
+    "selected_scenario_key": "A",
+    "selected_scenario_name": "A",
+    "selected_price_label": "0.1元/度",
+    "selected_price_mode": "fixed",
+    "has_realtime_price": false,
+    "fallback_policy": "no_realtime_then_fixed_scenarios"
+  },
+  "selected_scenario": {
+    "scenario_name": "A",
+    "pv_pricing_mode": "fixed",
+    "pv_feed_in_price": 0.1,
+    "pv_feed_in_price_label": "0.1元/度",
+    "pv_feed_in_price_weighted_average": 0.1,
+    "pv_feed_in_price_min": 0.1,
+    "pv_feed_in_price_max": 0.1,
+    "hours_covered": 24,
+    "daily_revenue": {
+      "total_revenue": 1932.5254,
+      "cash_revenue": 1499.2349,
+      "without_storage_total_revenue": 1449.7205,
+      "photovoltaic_sale_revenue": {
+        "total": 3.3875,
+        "from_storage": 0.0
+      },
+      "factory_savings_revenue": {
+        "total": 447.4675,
+        "from_photovoltaic": 433.2905,
+        "from_storage": 14.177
+      },
+      "charging_pile_revenue": {
+        "total": 2826.2056,
+        "from_photovoltaic": 881.2583,
+        "from_grid": 1189.3152,
+        "from_storage": 755.6321,
+        "service_fee": -0.4674
+      },
+      "grid_purchase_cost": 1330.4316,
+      "storage_contribution": {
+        "total": 482.8048,
+        "charging_pile_revenue": 755.6321,
+        "factory_savings_revenue": 14.177
+      },
+      "net_revenue_breakdown": {
+        "allocation_method": "strict_accounting",
+        "pie_chart_ready": true,
+        "items": {
+          "photovoltaic_sale": {
+            "amount": 3.3875,
+            "share_of_total_revenue": 0.0018
+          },
+          "factory_savings": {
+            "amount": 433.2905,
+            "share_of_total_revenue": 0.2242
+          },
+          "charging_pile": {
+            "amount": 1495.8474,
+            "share_of_total_revenue": 0.774
+          }
+        },
+        "sum_of_items": 1932.5254
+      }
+    },
+    "revenue_components": {
+      "photovoltaic": {
+        "actual_total": 1317.9363,
+        "to_grid": 3.3875,
+        "to_charging_pile": 881.2583,
+        "to_factory_savings": 433.2905
+      },
+      "grid": {
+        "purchase_cost": 1330.4316,
+        "to_factory_cost": 0.3019,
+        "to_storage_cost": 411.275,
+        "to_charging_pile_revenue": 1189.3152
+      },
+      "storage": {
+        "extra_profit": 482.8048,
+        "to_factory_savings": 14.177,
+        "to_charging_pile_revenue": 755.6321
+      }
+    }
+  },
+  "period_order": [
+    "尖",
+    "峰",
+    "平",
+    "谷"
+  ],
+  "period_stats": [
+    {
+      "period": "尖",
+      "photovoltaic_generation_kwh": 517.7442,
+      "storage_charge_kwh": 47.475,
+      "storage_discharge_kwh": 222.3667,
+      "factory_load_kwh": 150.0,
+      "charging_pile_load_kwh": 611.7942,
+      "grid_purchase_kwh": 69.175,
+      "grid_sale_kwh": 0.0167,
+      "factory_savings_revenue": 190.3753,
+      "photovoltaic_to_load_kwh": 477.7526,
+      "photovoltaic_to_factory_kwh": 150.0,
+      "photovoltaic_to_storage_kwh": 39.9917,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 61.6917,
+      "grid_to_storage_kwh": 7.4833,
+      "selected_profit": 619.5338
+    },
+    {
+      "period": "峰",
+      "photovoltaic_generation_kwh": 335.2328,
+      "storage_charge_kwh": 9.525,
+      "storage_discharge_kwh": 393.8167,
+      "factory_load_kwh": 150.0,
+      "charging_pile_load_kwh": 687.0911,
+      "grid_purchase_kwh": 151.4417,
+      "grid_sale_kwh": 33.875,
+      "factory_savings_revenue": 146.8126,
+      "photovoltaic_to_load_kwh": 292.1827,
+      "photovoltaic_to_factory_kwh": 143.8114,
+      "photovoltaic_to_storage_kwh": 9.175,
+      "photovoltaic_to_grid_kwh": 33.875,
+      "grid_to_load_kwh": 151.0917,
+      "grid_to_storage_kwh": 0.35,
+      "selected_profit": 607.584
+    },
+    {
+      "period": "平",
+      "photovoltaic_generation_kwh": 911.95,
+      "storage_charge_kwh": 499.3667,
+      "storage_discharge_kwh": 361.1167,
+      "factory_load_kwh": 150.0,
+      "charging_pile_load_kwh": 1696.6417,
+      "grid_purchase_kwh": 1073.6583,
+      "grid_sale_kwh": 0.7167,
+      "factory_savings_revenue": 83.9211,
+      "photovoltaic_to_load_kwh": 853.6583,
+      "photovoltaic_to_factory_kwh": 137.1553,
+      "photovoltaic_to_storage_kwh": 58.2917,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 632.5833,
+      "grid_to_storage_kwh": 441.075,
+      "selected_profit": 564.4091
+    },
+    {
+      "period": "谷",
+      "photovoltaic_generation_kwh": 94.4359,
+      "storage_charge_kwh": 526.8583,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 1244.2526,
+      "grid_purchase_kwh": 1726.675,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 12.1815,
+      "photovoltaic_to_load_kwh": 94.4359,
+      "photovoltaic_to_factory_kwh": 48.7908,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 1199.8167,
+      "grid_to_storage_kwh": 526.8583,
+      "selected_profit": 140.9984
+    }
+  ],
+  "hourly_stats": [
+    {
+      "hour": "00:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 85.975,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 269.2917,
+      "grid_purchase_kwh": 355.2667,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 269.2917,
+      "grid_to_storage_kwh": 85.975,
+      "selected_pv_price": 0.1,
+      "selected_profit": 32.4823
+    },
+    {
+      "hour": "01:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 89.75,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 104.775,
+      "grid_purchase_kwh": 194.525,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 104.775,
+      "grid_to_storage_kwh": 89.75,
+      "selected_pv_price": 0.1,
+      "selected_profit": -1.4181
+    },
+    {
+      "hour": "02:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 89.6833,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 182.1333,
+      "grid_purchase_kwh": 271.8167,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 182.1333,
+      "grid_to_storage_kwh": 89.6833,
+      "selected_pv_price": 0.1,
+      "selected_profit": 14.0959
+    },
+    {
+      "hour": "03:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 89.625,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 114.7083,
+      "grid_purchase_kwh": 204.3333,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 114.7083,
+      "grid_to_storage_kwh": 89.625,
+      "selected_pv_price": 0.1,
+      "selected_profit": 0.6031
+    },
+    {
+      "hour": "04:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 89.5917,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 50.925,
+      "grid_purchase_kwh": 140.5167,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 50.925,
+      "grid_to_storage_kwh": 89.5917,
+      "selected_pv_price": 0.1,
+      "selected_profit": -12.1664
+    },
+    {
+      "hour": "05:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 0.624,
+      "storage_charge_kwh": 82.2333,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 124.6573,
+      "grid_purchase_kwh": 206.2667,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.624,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 124.0333,
+      "grid_to_storage_kwh": 82.2333,
+      "selected_pv_price": 0.1,
+      "selected_profit": 4.5975
+    },
+    {
+      "hour": "06:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 23.4622,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 217.0872,
+      "grid_purchase_kwh": 193.625,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 23.4622,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 193.625,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 49.3471
+    },
+    {
+      "hour": "07:00",
+      "period": "谷",
+      "photovoltaic_generation_kwh": 70.3498,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 180.6748,
+      "grid_purchase_kwh": 160.325,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 12.1815,
+      "photovoltaic_to_load_kwh": 70.3498,
+      "photovoltaic_to_factory_kwh": 48.7908,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 160.325,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 53.457
+    },
+    {
+      "hour": "08:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 179.6082,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 162.3333,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 305.1333,
+      "grid_purchase_kwh": 13.325,
+      "grid_sale_kwh": 0.1333,
+      "factory_savings_revenue": 30.5934,
+      "photovoltaic_to_load_kwh": 179.6082,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 13.325,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 205.5336
+    },
+    {
+      "hour": "09:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 108.2987,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 198.7833,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 296.6653,
+      "grid_purchase_kwh": 40.1667,
+      "grid_sale_kwh": 0.5833,
+      "factory_savings_revenue": 22.7342,
+      "photovoltaic_to_load_kwh": 108.2987,
+      "photovoltaic_to_factory_kwh": 37.1553,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 40.1667,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 176.215
+    },
+    {
+      "hour": "10:00",
+      "period": "峰",
+      "photovoltaic_generation_kwh": 66.1792,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 128.6083,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 203.2458,
+      "grid_purchase_kwh": 58.4583,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 47.2505,
+      "photovoltaic_to_load_kwh": 66.1792,
+      "photovoltaic_to_factory_kwh": 46.2846,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 58.4583,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 131.8767
+    },
+    {
+      "hour": "11:00",
+      "period": "尖",
+      "photovoltaic_generation_kwh": 251.5588,
+      "storage_charge_kwh": 24.6583,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 218.5672,
+      "grid_purchase_kwh": 41.6667,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 63.4584,
+      "photovoltaic_to_load_kwh": 230.0672,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 21.4917,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 38.5,
+      "grid_to_storage_kwh": 3.1667,
+      "selected_pv_price": 0.1,
+      "selected_profit": 165.7591
+    },
+    {
+      "hour": "12:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 298.2427,
+      "storage_charge_kwh": 249.6667,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 343.2843,
+      "grid_purchase_kwh": 294.7083,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 277.426,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 20.8167,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 65.8583,
+      "grid_to_storage_kwh": 228.85,
+      "selected_pv_price": 0.1,
+      "selected_profit": 42.812
+    },
+    {
+      "hour": "13:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 325.7929,
+      "storage_charge_kwh": 249.7,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 254.4263,
+      "grid_purchase_kwh": 228.3333,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 30.5934,
+      "photovoltaic_to_load_kwh": 288.3179,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 37.475,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 16.1083,
+      "grid_to_storage_kwh": 212.225,
+      "selected_pv_price": 0.1,
+      "selected_profit": 56.2605
+    },
+    {
+      "hour": "14:00",
+      "period": "峰",
+      "photovoltaic_generation_kwh": 199.9118,
+      "storage_charge_kwh": 9.525,
+      "storage_discharge_kwh": 28.2,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 143.9201,
+      "grid_purchase_kwh": 9.2083,
+      "grid_sale_kwh": 33.875,
+      "factory_savings_revenue": 51.0434,
+      "photovoltaic_to_load_kwh": 156.8617,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 9.175,
+      "photovoltaic_to_grid_kwh": 33.875,
+      "grid_to_load_kwh": 8.8583,
+      "grid_to_storage_kwh": 0.35,
+      "selected_pv_price": 0.1,
+      "selected_profit": 188.9505
+    },
+    {
+      "hour": "15:00",
+      "period": "尖",
+      "photovoltaic_generation_kwh": 152.655,
+      "storage_charge_kwh": 22.8167,
+      "storage_discharge_kwh": 32.425,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 122.9633,
+      "grid_purchase_kwh": 10.7,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 63.4584,
+      "photovoltaic_to_load_kwh": 134.155,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 18.5,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 6.3833,
+      "grid_to_storage_kwh": 4.3167,
+      "selected_pv_price": 0.1,
+      "selected_profit": 163.0046
+    },
+    {
+      "hour": "16:00",
+      "period": "尖",
+      "photovoltaic_generation_kwh": 113.5304,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 189.9417,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 270.2638,
+      "grid_purchase_kwh": 16.8083,
+      "grid_sale_kwh": 0.0167,
+      "factory_savings_revenue": 63.4584,
+      "photovoltaic_to_load_kwh": 113.5304,
+      "photovoltaic_to_factory_kwh": 50.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 16.8083,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 290.7701
+    },
+    {
+      "hour": "17:00",
+      "period": "峰",
+      "photovoltaic_generation_kwh": 53.7657,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 143.7667,
+      "factory_load_kwh": 50.0,
+      "charging_pile_load_kwh": 157.574,
+      "grid_purchase_kwh": 10.0417,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 48.5187,
+      "photovoltaic_to_load_kwh": 53.7657,
+      "photovoltaic_to_factory_kwh": 47.5268,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 10.0417,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 194.2657
+    },
+    {
+      "hour": "18:00",
+      "period": "峰",
+      "photovoltaic_generation_kwh": 15.3762,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 93.2417,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 182.3512,
+      "grid_purchase_kwh": 73.7333,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 15.3762,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 73.7333,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 92.491
+    },
+    {
+      "hour": "19:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 0.0075,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 166.3075,
+      "grid_purchase_kwh": 166.3,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0075,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 166.3,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 27.9661
+    },
+    {
+      "hour": "20:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 162.6,
+      "grid_purchase_kwh": 162.6,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 162.6,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 27.3381
+    },
+    {
+      "hour": "21:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 62.95,
+      "grid_purchase_kwh": 62.95,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 62.95,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 10.5839
+    },
+    {
+      "hour": "22:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 73.375,
+      "grid_purchase_kwh": 73.375,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 73.375,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 12.3366
+    },
+    {
+      "hour": "23:00",
+      "period": "平",
+      "photovoltaic_generation_kwh": 0.0,
+      "storage_charge_kwh": 0.0,
+      "storage_discharge_kwh": 0.0,
+      "factory_load_kwh": 0.0,
+      "charging_pile_load_kwh": 31.9,
+      "grid_purchase_kwh": 31.9,
+      "grid_sale_kwh": 0.0,
+      "factory_savings_revenue": 0.0,
+      "photovoltaic_to_load_kwh": 0.0,
+      "photovoltaic_to_factory_kwh": 0.0,
+      "photovoltaic_to_storage_kwh": 0.0,
+      "photovoltaic_to_grid_kwh": 0.0,
+      "grid_to_load_kwh": 31.9,
+      "grid_to_storage_kwh": 0.0,
+      "selected_pv_price": 0.1,
+      "selected_profit": 5.3634
+    }
+  ],
+  "scenarios": {
+    "A": {
+      "scenario_name": "A",
+      "pv_pricing_mode": "fixed",
+      "pv_feed_in_price": 0.1,
+      "pv_feed_in_price_label": "0.1元/度",
+      "pv_feed_in_price_weighted_average": 0.1,
+      "pv_feed_in_price_min": 0.1,
+      "pv_feed_in_price_max": 0.1,
+      "hours_covered": 24,
+      "daily_revenue": {
+        "total_revenue": 1932.5254,
+        "cash_revenue": 1499.2349,
+        "without_storage_total_revenue": 1449.7205,
+        "photovoltaic_sale_revenue": {
+          "total": 3.3875,
+          "from_storage": 0.0
+        },
+        "factory_savings_revenue": {
+          "total": 447.4675,
+          "from_photovoltaic": 433.2905,
+          "from_storage": 14.177
+        },
+        "charging_pile_revenue": {
+          "total": 2826.2056,
+          "from_photovoltaic": 881.2583,
+          "from_grid": 1189.3152,
+          "from_storage": 755.6321,
+          "service_fee": -0.4674
+        },
+        "grid_purchase_cost": 1330.4316,
+        "storage_contribution": {
+          "total": 482.8048,
+          "charging_pile_revenue": 755.6321,
+          "factory_savings_revenue": 14.177
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 3.3875,
+              "share_of_total_revenue": 0.0018
+            },
+            "factory_savings": {
+              "amount": 433.2905,
+              "share_of_total_revenue": 0.2242
+            },
+            "charging_pile": {
+              "amount": 1495.8474,
+              "share_of_total_revenue": 0.774
+            }
+          },
+          "sum_of_items": 1932.5254
+        }
+      },
+      "revenue_components": {
+        "photovoltaic": {
+          "actual_total": 1317.9363,
+          "to_grid": 3.3875,
+          "to_charging_pile": 881.2583,
+          "to_factory_savings": 433.2905
+        },
+        "grid": {
+          "purchase_cost": 1330.4316,
+          "to_factory_cost": 0.3019,
+          "to_storage_cost": 411.275,
+          "to_charging_pile_revenue": 1189.3152
+        },
+        "storage": {
+          "extra_profit": 482.8048,
+          "to_factory_savings": 14.177,
+          "to_charging_pile_revenue": 755.6321
+        }
+      }
+    },
+    "B": {
+      "scenario_name": "B",
+      "pv_pricing_mode": "fixed",
+      "pv_feed_in_price": 0.2,
+      "pv_feed_in_price_label": "0.2元/度",
+      "pv_feed_in_price_weighted_average": 0.2,
+      "pv_feed_in_price_min": 0.2,
+      "pv_feed_in_price_max": 0.2,
+      "hours_covered": 24,
+      "daily_revenue": {
+        "total_revenue": 1935.9862,
+        "cash_revenue": 1502.6957,
+        "without_storage_total_revenue": 1463.8539,
+        "photovoltaic_sale_revenue": {
+          "total": 6.775,
+          "from_storage": 0.0
+        },
+        "factory_savings_revenue": {
+          "total": 447.4675,
+          "from_photovoltaic": 433.2905,
+          "from_storage": 14.177
+        },
+        "charging_pile_revenue": {
+          "total": 2826.2056,
+          "from_photovoltaic": 881.2583,
+          "from_grid": 1189.3152,
+          "from_storage": 755.6321,
+          "service_fee": -0.4674
+        },
+        "grid_purchase_cost": 1330.4316,
+        "storage_contribution": {
+          "total": 472.1323,
+          "charging_pile_revenue": 755.6321,
+          "factory_savings_revenue": 14.177
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 6.775,
+              "share_of_total_revenue": 0.0035
+            },
+            "factory_savings": {
+              "amount": 433.2905,
+              "share_of_total_revenue": 0.2238
+            },
+            "charging_pile": {
+              "amount": 1495.9207,
+              "share_of_total_revenue": 0.7727
+            }
+          },
+          "sum_of_items": 1935.9862
+        }
+      },
+      "revenue_components": {
+        "photovoltaic": {
+          "actual_total": 1321.3238,
+          "to_grid": 6.775,
+          "to_charging_pile": 881.2583,
+          "to_factory_savings": 433.2905
+        },
+        "grid": {
+          "purchase_cost": 1330.4316,
+          "to_factory_cost": 0.3019,
+          "to_storage_cost": 411.275,
+          "to_charging_pile_revenue": 1189.3152
+        },
+        "storage": {
+          "extra_profit": 472.1323,
+          "to_factory_savings": 14.177,
+          "to_charging_pile_revenue": 755.6321
+        }
+      }
+    },
+    "C": {
+      "scenario_name": "C",
+      "pv_pricing_mode": "fixed",
+      "pv_feed_in_price": 0.35,
+      "pv_feed_in_price_label": "0.35元/度",
+      "pv_feed_in_price_weighted_average": 0.35,
+      "pv_feed_in_price_min": 0.35,
+      "pv_feed_in_price_max": 0.35,
+      "hours_covered": 24,
+      "daily_revenue": {
+        "total_revenue": 1941.1774,
+        "cash_revenue": 1507.8869,
+        "without_storage_total_revenue": 1485.0539,
+        "photovoltaic_sale_revenue": {
+          "total": 11.8562,
+          "from_storage": 0.0
+        },
+        "factory_savings_revenue": {
+          "total": 447.4675,
+          "from_photovoltaic": 433.2905,
+          "from_storage": 14.177
+        },
+        "charging_pile_revenue": {
+          "total": 2826.2056,
+          "from_photovoltaic": 881.2583,
+          "from_grid": 1189.3152,
+          "from_storage": 755.6321,
+          "service_fee": -0.4674
+        },
+        "grid_purchase_cost": 1330.4316,
+        "storage_contribution": {
+          "total": 456.1236,
+          "charging_pile_revenue": 755.6321,
+          "factory_savings_revenue": 14.177
+        },
+        "net_revenue_breakdown": {
+          "allocation_method": "strict_accounting",
+          "pie_chart_ready": true,
+          "items": {
+            "photovoltaic_sale": {
+              "amount": 11.8562,
+              "share_of_total_revenue": 0.0061
+            },
+            "factory_savings": {
+              "amount": 433.2905,
+              "share_of_total_revenue": 0.2232
+            },
+            "charging_pile": {
+              "amount": 1496.0307,
+              "share_of_total_revenue": 0.7707
+            }
+          },
+          "sum_of_items": 1941.1774
+        }
+      },
+      "revenue_components": {
+        "photovoltaic": {
+          "actual_total": 1326.4051,
+          "to_grid": 11.8562,
+          "to_charging_pile": 881.2583,
+          "to_factory_savings": 433.2905
+        },
+        "grid": {
+          "purchase_cost": 1330.4316,
+          "to_factory_cost": 0.3019,
+          "to_storage_cost": 411.275,
+          "to_charging_pile_revenue": 1189.3152
+        },
+        "storage": {
+          "extra_profit": 456.1236,
+          "to_factory_savings": 14.177,
+          "to_charging_pile_revenue": 755.6321
+        }
+      }
+    }
+  }
+}
