@@ -36288,6 +36288,310 @@
         "fallback_policy": "no_realtime_then_fixed_scenarios"
       },
       "pv_generation_kwh": 2314.62
+    },
+    {
+      "date": "20260823",
+      "scenarios": {
+        "01": {
+          "scenario_name": "A",
+          "pv_feed_in_price": 0.1,
+          "pv_feed_in_price_label": "0.1元/度",
+          "pv_pricing_mode": "fixed",
+          "total_revenue": 960.2807,
+          "storage_contribution": 406.8991,
+          "daily_revenue": {
+            "total_revenue": 960.2807,
+            "cash_revenue": 645.348,
+            "without_storage_total_revenue": 553.3816,
+            "photovoltaic_sale_revenue": {
+              "total": 68.38,
+              "from_storage": 0.0
+            },
+            "factory_savings_revenue": {
+              "total": 393.3639,
+              "from_photovoltaic": 314.9327,
+              "from_storage": 78.4311
+            },
+            "charging_pile_revenue": {
+              "total": 1637.6699,
+              "from_photovoltaic": 344.3711,
+              "from_grid": 947.4104,
+              "from_storage": 345.8885,
+              "service_fee": 142.0143
+            },
+            "grid_purchase_cost": 1060.7019,
+            "storage_contribution": {
+              "total": 406.8991,
+              "charging_pile_revenue": 345.8885,
+              "factory_savings_revenue": 78.4311
+            },
+            "net_revenue_breakdown": {
+              "allocation_method": "strict_accounting",
+              "pie_chart_ready": true,
+              "items": {
+                "photovoltaic_sale": {
+                  "amount": 68.38,
+                  "share_of_total_revenue": 0.0712
+                },
+                "factory_savings": {
+                  "amount": 314.9327,
+                  "share_of_total_revenue": 0.328
+                },
+                "charging_pile": {
+                  "amount": 576.968,
+                  "share_of_total_revenue": 0.6008
+                }
+              },
+              "sum_of_items": 960.2807
+            }
+          }
+        },
+        "02": {
+          "scenario_name": "B",
+          "pv_feed_in_price": 0.2,
+          "pv_feed_in_price_label": "0.2元/度",
+          "pv_pricing_mode": "fixed",
+          "total_revenue": 1028.6607,
+          "storage_contribution": 406.8991,
+          "daily_revenue": {
+            "total_revenue": 1028.6607,
+            "cash_revenue": 713.728,
+            "without_storage_total_revenue": 621.7616,
+            "photovoltaic_sale_revenue": {
+              "total": 136.76,
+              "from_storage": 0.0
+            },
+            "factory_savings_revenue": {
+              "total": 393.3639,
+              "from_photovoltaic": 314.9327,
+              "from_storage": 78.4311
+            },
+            "charging_pile_revenue": {
+              "total": 1637.6699,
+              "from_photovoltaic": 344.3711,
+              "from_grid": 947.4104,
+              "from_storage": 345.8885,
+              "service_fee": 142.0143
+            },
+            "grid_purchase_cost": 1060.7019,
+            "storage_contribution": {
+              "total": 406.8991,
+              "charging_pile_revenue": 345.8885,
+              "factory_savings_revenue": 78.4311
+            },
+            "net_revenue_breakdown": {
+              "allocation_method": "strict_accounting",
+              "pie_chart_ready": true,
+              "items": {
+                "photovoltaic_sale": {
+                  "amount": 136.76,
+                  "share_of_total_revenue": 0.1329
+                },
+                "factory_savings": {
+                  "amount": 314.9327,
+                  "share_of_total_revenue": 0.3062
+                },
+                "charging_pile": {
+                  "amount": 576.968,
+                  "share_of_total_revenue": 0.5609
+                }
+              },
+              "sum_of_items": 1028.6607
+            }
+          }
+        },
+        "035": {
+          "scenario_name": "C",
+          "pv_feed_in_price": 0.35,
+          "pv_feed_in_price_label": "0.35元/度",
+          "pv_pricing_mode": "fixed",
+          "total_revenue": 1131.2307,
+          "storage_contribution": 406.8991,
+          "daily_revenue": {
+            "total_revenue": 1131.2307,
+            "cash_revenue": 816.298,
+            "without_storage_total_revenue": 724.3316,
+            "photovoltaic_sale_revenue": {
+              "total": 239.33,
+              "from_storage": 0.0
+            },
+            "factory_savings_revenue": {
+              "total": 393.3639,
+              "from_photovoltaic": 314.9327,
+              "from_storage": 78.4311
+            },
+            "charging_pile_revenue": {
+              "total": 1637.6699,
+              "from_photovoltaic": 344.3711,
+              "from_grid": 947.4104,
+              "from_storage": 345.8885,
+              "service_fee": 142.0143
+            },
+            "grid_purchase_cost": 1060.7019,
+            "storage_contribution": {
+              "total": 406.8991,
+              "charging_pile_revenue": 345.8885,
+              "factory_savings_revenue": 78.4311
+            },
+            "net_revenue_breakdown": {
+              "allocation_method": "strict_accounting",
+              "pie_chart_ready": true,
+              "items": {
+                "photovoltaic_sale": {
+                  "amount": 239.33,
+                  "share_of_total_revenue": 0.2116
+                },
+                "factory_savings": {
+                  "amount": 314.9327,
+                  "share_of_total_revenue": 0.2784
+                },
+                "charging_pile": {
+                  "amount": 576.968,
+                  "share_of_total_revenue": 0.51
+                }
+              },
+              "sum_of_items": 1131.2307
+            }
+          }
+        },
+        "rt": {
+          "scenario_name": "",
+          "pv_feed_in_price": null,
+          "pv_feed_in_price_label": "实时电价",
+          "pv_pricing_mode": "fixed",
+          "total_revenue": 0.0,
+          "storage_contribution": 0.0,
+          "daily_revenue": {
+            "total_revenue": 0.0,
+            "cash_revenue": 0.0,
+            "without_storage_total_revenue": 0.0,
+            "photovoltaic_sale_revenue": {
+              "total": 0.0,
+              "from_storage": 0.0
+            },
+            "factory_savings_revenue": {
+              "total": 0.0,
+              "from_photovoltaic": 0.0,
+              "from_storage": 0.0
+            },
+            "charging_pile_revenue": {
+              "total": 0.0,
+              "from_photovoltaic": 0.0,
+              "from_grid": 0.0,
+              "from_storage": 0.0
+            },
+            "grid_purchase_cost": 0.0,
+            "storage_contribution": {
+              "total": 0.0,
+              "charging_pile_revenue": 0.0,
+              "factory_savings_revenue": 0.0
+            },
+            "net_revenue_breakdown": {
+              "allocation_method": "strict_accounting",
+              "pie_chart_ready": false,
+              "items": {
+                "photovoltaic_sale": {
+                  "amount": 0.0,
+                  "share_of_total_revenue": 0.0
+                },
+                "factory_savings": {
+                  "amount": 0.0,
+                  "share_of_total_revenue": 0.0
+                },
+                "charging_pile": {
+                  "amount": 0.0,
+                  "share_of_total_revenue": 0.0
+                }
+              },
+              "sum_of_items": 0.0
+            }
+          }
+        }
+      },
+      "selected_scenario": {
+        "scenario_name": "A",
+        "pv_pricing_mode": "fixed",
+        "pv_feed_in_price": 0.1,
+        "pv_feed_in_price_label": "0.1元/度",
+        "pv_feed_in_price_weighted_average": 0.1,
+        "pv_feed_in_price_min": 0.1,
+        "pv_feed_in_price_max": 0.1,
+        "hours_covered": 24,
+        "daily_revenue": {
+          "total_revenue": 960.2807,
+          "cash_revenue": 645.348,
+          "without_storage_total_revenue": 553.3816,
+          "photovoltaic_sale_revenue": {
+            "total": 68.38,
+            "from_storage": 0.0
+          },
+          "factory_savings_revenue": {
+            "total": 393.3639,
+            "from_photovoltaic": 314.9327,
+            "from_storage": 78.4311
+          },
+          "charging_pile_revenue": {
+            "total": 1637.6699,
+            "from_photovoltaic": 344.3711,
+            "from_grid": 947.4104,
+            "from_storage": 345.8885,
+            "service_fee": 142.0143
+          },
+          "grid_purchase_cost": 1060.7019,
+          "storage_contribution": {
+            "total": 406.8991,
+            "charging_pile_revenue": 345.8885,
+            "factory_savings_revenue": 78.4311
+          },
+          "net_revenue_breakdown": {
+            "allocation_method": "strict_accounting",
+            "pie_chart_ready": true,
+            "items": {
+              "photovoltaic_sale": {
+                "amount": 68.38,
+                "share_of_total_revenue": 0.0712
+              },
+              "factory_savings": {
+                "amount": 314.9327,
+                "share_of_total_revenue": 0.328
+              },
+              "charging_pile": {
+                "amount": 576.968,
+                "share_of_total_revenue": 0.6008
+              }
+            },
+            "sum_of_items": 960.2807
+          }
+        },
+        "revenue_components": {
+          "photovoltaic": {
+            "actual_total": 727.6838,
+            "to_grid": 68.38,
+            "to_charging_pile": 344.3711,
+            "to_factory_savings": 314.9327
+          },
+          "grid": {
+            "purchase_cost": 1060.7019,
+            "to_factory_cost": 41.1327,
+            "to_storage_cost": 132.4876,
+            "to_charging_pile_revenue": 947.4104
+          },
+          "storage": {
+            "extra_profit": 406.8991,
+            "to_factory_savings": 78.4311,
+            "to_charging_pile_revenue": 345.8885
+          }
+        }
+      },
+      "pricing_strategy": {
+        "selected_scenario_key": "A",
+        "selected_scenario_name": "A",
+        "selected_price_label": "0.1元/度",
+        "selected_price_mode": "fixed",
+        "has_realtime_price": false,
+        "fallback_policy": "no_realtime_then_fixed_scenarios"
+      },
+      "pv_generation_kwh": 1652.08
     }
   ],
   "generated_from": "daily_reports_and_daily_json_files"
